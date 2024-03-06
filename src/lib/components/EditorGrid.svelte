@@ -1,13 +1,8 @@
 <script lang="ts">
-    import type { Crossword } from "$lib/crossword";
-    import type { EditorCommandType } from "$lib/editor/types";
-    import { createEventDispatcher } from "svelte";
-
-    export let crossword: Crossword;
-    const dispatch = createEventDispatcher<{
-        edit: EditorCommandType;
-    }>();
-
+    import editable from "$lib/editor/editable";
+   
+    const { readable } = editable;
+    const crossword = $readable;
 </script>
 
 <div class="editor-grid" style={`--grid-size: ${crossword.size}`}>
