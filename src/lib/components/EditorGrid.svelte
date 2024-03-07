@@ -1,18 +1,50 @@
+
 <script lang="ts">
     import editable from "$lib/editor/editable";
-   
-    const { readable } = editable;
-    const crossword = $readable;
+    import { EditMode, Orientation } from "$lib/editor/types";
+    import { WhiteSquare, type Square } from "$lib/square";
+
+    const crossword = $editable;
+
+    $: selectedSquare = crossword.grid[crossword.cursor.index];
+
+    let cursorOrientation: keyof WhiteSquare;
+    $: cursorOrientation = crossword.cursor.orientation === Orientation.Across ? 'across' : 'down';
+
+    function handleClick(event: Event) {
+        if (crossword.mode === EditMode.Insert) {
+            return;
+        }
+    }
+
+    function squareIsHighlighted(square: Square, index: number) {
+        const { cursor } = crossword;
+
+        if (cursor.index == index) {
+            return true;
+        }
+
+        if (square.isBlack || selectedSquare.isBlack) {
+            return false;
+        }
+
+        if (square[cursorOrientation] === selectedSquare.number) {
+            return true;
+        }
+
+        return false;
+    } 
 </script>
 
 <div class="editor-grid" style={`--grid-size: ${crossword.size}`}>
     {#each crossword.grid as square, index}
         <div
-            class="editor-grid__square-container" 
+            class="editor-grid__square-container"
+            class:highlight={squareIsHighlighted(square, index)}
         > 
             {#if !square.isBlack}
                 {#if square.number}
-                    <div>
+                    <div class="editor-grid__number">
                         { square.number }
                     </div>
                 {/if}
@@ -20,10 +52,6 @@
                     type="text" 
                     class="editor-grid__square"
                     value={square.value} 
-                    data-index={index}
-                    data-number={square.number}
-                    data-across={square.across}
-                    data-down={square.across}
                 />
             {/if}
         </div> 
@@ -39,6 +67,10 @@
 
     &__square-container {
         aspect-ratio: 1;
+    }
+
+    & .highlight {
+        outline: 1px solid blue; 
     }
 }
 

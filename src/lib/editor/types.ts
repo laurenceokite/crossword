@@ -7,8 +7,7 @@ export enum Orientation {
 
 export enum EditMode {
     Insert,
-    Grid,
-    Select
+    Grid
 }
 
 export enum Direction {
@@ -16,6 +15,13 @@ export enum Direction {
     Up,
     Down,
     Right    
+}
+
+export interface CursorState {
+    orientation: Orientation,
+    index: number,
+    x: number,
+    y: number
 }
 
 export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation; 

@@ -1,43 +1,39 @@
 import { newGrid, numberSquares } from "$lib/crossword";
-import { readonly, writable } from "svelte/store";
+import { writable } from "svelte/store";
 import type { Crossword } from "../crossword";
 import type { EditorCommand } from "./command";
-import { CommandExecutionResultType, EditMode, Orientation } from "./types";
+import { CommandExecutionResultType } from "./types";
 
 export interface EditableCrossword extends Crossword {
     history: { undo: EditorCommand[], redo: EditorCommand[] };
-    orientation: Orientation,
-    mode: EditMode,
-    cursor: {
-        index: number,
-        x: number,
-        y: number
-    }
 }
 
+const { subscribe, set, update } = writable<EditableCrossword>();
 
+function load(crossword?: Crossword) {
+    const editorInit = {
+        history: { undo: [], redo: [] },     
+    }
 
+    if (!crossword) {
+        crossword = numberSquares({
+            grid: newGrid(15),
+            size: 15
+        })
+    }
 
-const writeable = writable<EditableCrossword>();
-const readable = readonly(writeable);
+    if (!crossword.size) {
+        crossword.size = Math.ceil(Math.sqrt(crossword.grid.length));
+    }
 
-function load(crossword: Crossword) {
-    writeable.set({
+    set({
         ...crossword,
-        grid: crossword.grid.length ? crossword.grid : newGrid(crossword.size),
-        history: { undo: [], redo: [] },
-        orientation: Orientation.Across,
-        mode: EditMode.Grid,
-        cursor: {
-            index: 0,
-            x: 0,
-            y: 0,
-        }
+        ...editorInit
     })
 }
 
 function undo() {
-    writeable.update(editable => {
+    update(editable => {
         const { undo, redo } = editable.history;
 
         const command = undo.pop();
@@ -65,7 +61,7 @@ function undo() {
 }
 
 function redo() {
-    writeable.update(editable => {
+    update(editable => {
         const { undo, redo } = editable.history;
 
         const command = redo.pop();
@@ -81,7 +77,7 @@ function redo() {
 } 
 
 function execute(command: EditorCommand) {
-    writeable.update(editable => {
+    update(editable => {
         const result = command.execute(editable);
         const { undo, redo } = editable.history;
         let { crossword } = result;
@@ -108,7 +104,7 @@ function execute(command: EditorCommand) {
 }
 
 export default {
-    readable,
+    subscribe,
     load,
     undo,
     redo,
