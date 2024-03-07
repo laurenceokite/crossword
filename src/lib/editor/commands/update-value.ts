@@ -1,6 +1,6 @@
 import type { EditorCommand } from "../command";
-import type { Square, WhiteSquare } from "$lib/square";
-import { CommandExecutionResultType, EditorCommandType } from "../types";
+import type { Square, WhiteSquare } from "$lib/crossword";
+import { CommandExecutionResultType, EditorCommandType } from "../command";
 import type { Crossword } from "$lib/crossword";
 
 export function updateValue(index: number, value: string): EditorCommand {
@@ -38,7 +38,7 @@ export function updateValue(index: number, value: string): EditorCommand {
     }
 
     function undo(crossword: Crossword) {
-        const { grid } = crossword;
+        const grid = [...crossword.grid];
 
         if (previousState) {
             grid[index] = previousState;

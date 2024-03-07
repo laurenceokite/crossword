@@ -1,13 +1,13 @@
-import { numberSquares, type Crossword } from "$lib/crossword";
-import { BlackSquare, WhiteSquare, type Square } from "$lib/square";
+import type { Crossword, BlackSquare, WhiteSquare, Square } from "$lib/crossword";
 import type { EditorCommand } from "../command";
-import { CommandExecutionResultType, EditorCommandType } from "../types";
+import { whiteSquare, blackSquare } from "../grid";
+import { CommandExecutionResultType, EditorCommandType } from "../command";
 
 export function toggleSquare(index: number): EditorCommand {
     let previousState: Square | null = null;
 
     function execute(crossword: Crossword) {
-        const { grid } = crossword;
+        const grid = [...crossword.grid];
         const square = grid[index] ?? null;
 
         if (!square) {
@@ -19,13 +19,10 @@ export function toggleSquare(index: number): EditorCommand {
 
         previousState = square;
         grid[index] = square.isBlack 
-            ? new WhiteSquare() 
-            : new BlackSquare();
+            ? whiteSquare()
+            : blackSquare();
 
-        crossword = numberSquares({
-            ...crossword,
-            ...grid
-        });
+        crossword.grid = grid;
 
         return {
             type: CommandExecutionResultType.Success,
@@ -34,13 +31,13 @@ export function toggleSquare(index: number): EditorCommand {
     }
 
     function undo(crossword: Crossword) {
-        const { grid } = crossword;
+        const grid = [...crossword.grid];
         if (previousState) {
             grid[index] = previousState;
         }
         return {
             ...crossword,
-            ...grid
+            grid
         }
     }
 

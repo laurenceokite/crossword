@@ -1,12 +1,9 @@
-import { newGrid, numberSquares } from "$lib/crossword";
+
 import { writable } from "svelte/store";
 import type { Crossword } from "../crossword";
-import type { EditorCommand } from "./command";
-import { CommandExecutionResultType } from "./types";
-
-export interface EditableCrossword extends Crossword {
-    history: { undo: EditorCommand[], redo: EditorCommand[] };
-}
+import { CommandExecutionResultType, type EditorCommand } from "./command";
+import type { EditableCrossword } from "./types";
+import { newGrid, numberSquares } from "./grid";
 
 const { subscribe, set, update } = writable<EditableCrossword>();
 

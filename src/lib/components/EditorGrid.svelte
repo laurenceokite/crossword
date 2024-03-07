@@ -1,56 +1,39 @@
-
 <script lang="ts">
     import editable from "$lib/editor/editable";
-    import { EditMode, Orientation } from "$lib/editor/types";
-    import { WhiteSquare, type Square } from "$lib/square";
+    import type { Square } from "$lib/crossword";
+    import type { CursorState } from "$lib/cursor";
+    import { Orientation } from "$lib/types";
 
-    const crossword = $editable;
+    export let editMode = true;
+    export let disabled = false;
+    export let cursor: CursorState = {
+        orientation: Orientation.Across,
+        index: 0
+    };
 
-    $: selectedSquare = crossword.grid[crossword.cursor.index];
+    const crossword = editMode ? $editable : $editable;
+    $: selectedSquare = crossword.grid[cursor.index];
 
-    let cursorOrientation: keyof WhiteSquare;
-    $: cursorOrientation = crossword.cursor.orientation === Orientation.Across ? 'across' : 'down';
-
-    function handleClick(event: Event) {
-        if (crossword.mode === EditMode.Insert) {
-            return;
-        }
-    }
-
-    function squareIsHighlighted(square: Square, index: number) {
-        const { cursor } = crossword;
-
-        if (cursor.index == index) {
-            return true;
-        }
-
-        if (square.isBlack || selectedSquare.isBlack) {
-            return false;
-        }
-
-        if (square[cursorOrientation] === selectedSquare.number) {
-            return true;
-        }
-
-        return false;
+    function isHighlighted(square: Square, index: number) {
+        
     } 
+
 </script>
 
-<div class="editor-grid" style={`--grid-size: ${crossword.size}`}>
+<div class="input-grid" style={`--grid-size: ${crossword.size}`}>
     {#each crossword.grid as square, index}
         <div
-            class="editor-grid__square-container"
-            class:highlight={squareIsHighlighted(square, index)}
+            class="input-grid__square-container"
         > 
             {#if !square.isBlack}
                 {#if square.number}
-                    <div class="editor-grid__number">
+                    <div class="input-grid__number">
                         { square.number }
                     </div>
                 {/if}
                 <input 
                     type="text" 
-                    class="editor-grid__square"
+                    class="input-grid__square"
                     value={square.value} 
                 />
             {/if}
@@ -60,7 +43,7 @@
 
 
 <style>
-.editor-grid { 
+.input-grid { 
     display: grid;
     grid-template-columns: repeat(var(--grid-size), 1fr);
     grid-template-rows: repeat(var(--grid-size), 1fr);
@@ -73,5 +56,4 @@
         outline: 1px solid blue; 
     }
 }
-
 </style>

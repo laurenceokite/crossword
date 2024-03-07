@@ -1,13 +1,13 @@
-import { type Crossword } from "$lib/crossword";
-import { WhiteSquare, type Square } from "$lib/square";
+import type { Crossword, WhiteSquare, Square } from "$lib/crossword";
 import type { EditorCommand } from "../command";
-import { CommandExecutionResultType as ResultType, EditorCommandType } from "../types";
+import { CommandExecutionResultType as ResultType, EditorCommandType } from "../command";
+import { whiteSquare } from "../grid";
 
 export function resizeGrid(newSize: number): EditorCommand {
     let previousState: string | null = null;
 
     function newRow(length: number) {
-        return new Array(length).fill(null).map(() => new WhiteSquare());
+        return new Array(length).fill(null).map(() => whiteSquare());
     }
 
     function execute(crossword: Crossword) {

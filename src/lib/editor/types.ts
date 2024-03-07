@@ -1,8 +1,8 @@
 import type { Crossword } from "$lib/crossword";
+import type { EditorCommand } from "./command";
 
-export enum Orientation {
-    Across,
-    Down
+export interface EditableCrossword extends Crossword {
+    history: { undo: EditorCommand[], redo: EditorCommand[] };
 }
 
 export enum EditMode {
@@ -10,40 +10,3 @@ export enum EditMode {
     Grid
 }
 
-export enum Direction {
-    Left, 
-    Up,
-    Down,
-    Right    
-}
-
-export interface CursorState {
-    orientation: Orientation,
-    index: number,
-    x: number,
-    y: number
-}
-
-export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation; 
-
-
-export interface CommandExecutionSuccess {
-    type: CommandExecutionResultType.Success;
-    crossword: Crossword;
-}
-
-export interface CommandExecutionNoOperation {
-    type: CommandExecutionResultType.NoOperation;
-    crossword: Crossword;
-}
-
-export enum CommandExecutionResultType{
-    NoOperation,
-    Success
-}
-
-export enum EditorCommandType {
-    ResizeGrid,
-    ToggleSquare,
-    UpdateValue,
-};
