@@ -1,4 +1,4 @@
-import type { Crossword } from "./crossword";
+import type { Crossword, Square, WhiteSquare } from "./crossword";
 import { Orientation } from "./types";
 
 export enum Direction {
@@ -69,7 +69,6 @@ function move(direction: Direction, cursor: CursorState, size: number): CursorSt
     }
 
     if ((increment + index) < 0 || (increment + index) > ciel) {
-        console.log(increment + index, 'wrong');
         return cursor;
     }
 

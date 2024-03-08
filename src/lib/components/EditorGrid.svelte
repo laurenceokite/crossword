@@ -3,7 +3,7 @@
     import type { Square, WhiteSquare } from "$lib/crossword";
     import { type  CursorState, Direction, get2DIndices, moveCursor, isAtMovementBound } from "$lib/cursor";
     import { Orientation } from "$lib/types";
-    import { onMount } from "svelte";
+    import { createEventDispatcher, onMount } from "svelte";
 
     export let editing = true;
     export let disabled = false;
@@ -50,7 +50,11 @@
         const [x, y] = get2DIndices(cursor.index, crossword.size)
         let newState = moveCursor(direction, crossword, cursor, x, y);
 
-        while (crossword.grid[newState.index]?.isBlack) {
+        if (!crossword.grid[newState.index]) {
+            return;
+        }
+
+        while (crossword.grid[newState.index].isBlack) {
             const [newX, newY] = get2DIndices(newState.index, crossword.size);
             if (isAtMovementBound(direction, crossword.size, newX, newY)) {
                 return;
@@ -90,8 +94,61 @@
         }
     }
 
+    function handleInput(event: Event) {
+        selectNextEmptySquare();
+    }
+
+    function selectNextEmptySquare() {
+        const origin = crossword.grid[cursor.index] as WhiteSquare;
+        const interval = cursor.orientation === Orientation.Across ? 1 : crossword.size;
+        let index = cursor.index + interval;
+
+        const inOrigin = (i: number): boolean => {
+            if (i >= crossword.grid.length) {
+                return false;
+            }
+            const square = crossword.grid[i]
+            return !square?.isBlack && square[cursor.orientation] === origin[cursor.orientation];
+        }
+
+        // Forward in word
+        for (index; inOrigin(index); index += interval) {
+            const square = crossword.grid[index];
+            if (!square.isBlack && !square.value) {
+                select(index);
+                return;
+            }
+        }
+
+        // Backward in word
+        for (let i = cursor.index - interval; inOrigin(i); i -= interval) {
+            const square = crossword.grid[index];
+            if (!square.isBlack && !square.value) {
+                select(index);
+                return;
+            }
+        }
+
+        for (let i = 0; i < crossword.grid.length; i++) {
+            if (index <= crossword.grid.length) {
+                index -= crossword.grid.length;
+            }
+
+            const square = crossword.grid[i];
+
+            if (!square.isBlack && !square.value) {
+                select(index);
+                return;
+            }
+
+            index += interval;
+        }
+    }
+
+    const dispatch = createEventDispatcher<{ input: string }>();
+
     onMount(() => {
-        window.addEventListener('keydown', handleKeydown);
+        window.addEventListener('keydown', handleKeydown, { capture: true });
         return () => {
             window.removeEventListener('keydown', handleKeydown);
         };
@@ -113,6 +170,8 @@
                 {#key cursor}
                     <input 
                         on:click={() => select(index)}
+                        on:input={handleInput}
+                        on:keydown
                         bind:this={inputElements[index]}
                         bind:value={square.value}
                         type="text" 
