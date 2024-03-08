@@ -1,22 +1,64 @@
 <script lang="ts">
     import editable from "$lib/editor/editable";
-    import type { Square } from "$lib/crossword";
-    import type { CursorState } from "$lib/cursor";
+    import type { Square, WhiteSquare } from "$lib/crossword";
+    import { type  CursorState, Direction, get2DIndices, moveCursor, isAtMovementBound } from "$lib/cursor";
     import { Orientation } from "$lib/types";
 
-    export let editMode = true;
+    export let editing = true;
     export let disabled = false;
     export let cursor: CursorState = {
         orientation: Orientation.Across,
         index: 0
     };
 
-    const crossword = editMode ? $editable : $editable;
-    $: selectedSquare = crossword.grid[cursor.index];
+    const crossword = editing ? $editable : $editable;
+    let inputElements: HTMLInputElement[] = [];
 
-    function isHighlighted(square: Square, index: number) {
-        
+    $: currentSquare = crossword.grid[cursor.index] ?? null;
+    $: currentInput = inputElements[cursor.index] ?? null;
+
+    $: {
+        if (!disabled && currentInput) {
+            currentInput.focus();
+        }
+    }
+
+    $: {
+        if (disabled && currentInput === document.activeElement) {
+            currentInput.blur();
+        }
+    }
+
+    function isHighlighted(square: Square, index: number): boolean {
+        if (
+            cursor.index === index 
+            || square.isBlack
+            || currentSquare.isBlack
+        ) {
+            return false;
+        }
+
+        if (currentSquare?.[cursor.orientation] === square[cursor.orientation]) {
+            return true;
+        }
+
+        return false;
     } 
+
+    function move(direction: Direction) {
+        const [x, y] = get2DIndices(cursor.index, crossword.size)
+        let newState = moveCursor(direction, crossword, cursor, x, y);
+
+        while (crossword.grid[newState.index]?.isBlack) {
+            const [newX, newY] = get2DIndices(newState.index, crossword.size);
+            if (isAtMovementBound(direction, crossword.size, newX, newY)) {
+                return;
+            }
+            newState = moveCursor(direction, crossword, newState, newX, newY);
+        }
+
+        cursor = newState;
+    }
 
 </script>
 
@@ -32,9 +74,13 @@
                     </div>
                 {/if}
                 <input 
+                    bind:this={inputElements[index]}
                     type="text" 
-                    class="input-grid__square"
-                    value={square.value} 
+                    class="input-grid__input"
+                    class:highlighted={isHighlighted(square, index)}
+                    value={square.value}
+                    maxlength={ square.rebus ? 1 : 6 }
+                    {disabled}
                 />
             {/if}
         </div> 
@@ -52,8 +98,12 @@
         aspect-ratio: 1;
     }
 
-    & .highlight {
-        outline: 1px solid blue; 
+    & .highlighted {
+        background-color: #56789a; 
+    }
+
+    &__input {
+        background-color: transparent;
     }
 }
 </style>
