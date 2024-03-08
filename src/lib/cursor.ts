@@ -52,23 +52,24 @@ export function moveCursor(
 function move(direction: Direction, cursor: CursorState, size: number): CursorState {
     let increment = 0;
     const { index } = cursor;
-    const ciel = size ** 2 - 1; 
+    const ciel = (size ** 2) - 1; 
 
     switch (direction) {
         case Direction.Left:
             increment = -1;
             break;
         case Direction.Up:
-            increment = 1;
+            increment = -(size);
             break;
         case Direction.Down:
             increment = size;
             break;
         case Direction.Right:
-            increment = -size;
+            increment = 1;
     }
 
-    if (increment + index < 0 || increment + index < ciel) {
+    if ((increment + index) < 0 || (increment + index) > ciel) {
+        console.log(increment + index, 'wrong');
         return cursor;
     }
 

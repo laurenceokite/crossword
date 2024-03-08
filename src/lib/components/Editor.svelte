@@ -18,6 +18,6 @@
 
 <div>
     <div>
-        <EditorGrid {cursor} />
+        <EditorGrid bind:cursor />
     </div>
 </div>

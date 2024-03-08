@@ -3,6 +3,7 @@
     import type { Square, WhiteSquare } from "$lib/crossword";
     import { type  CursorState, Direction, get2DIndices, moveCursor, isAtMovementBound } from "$lib/cursor";
     import { Orientation } from "$lib/types";
+    import { onMount } from "svelte";
 
     export let editing = true;
     export let disabled = false;
@@ -60,6 +61,42 @@
         cursor = newState;
     }
 
+    function select(index: number) {
+        cursor = {
+            ...cursor,
+            index
+        }
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        const { key } = event;
+        if (disabled) {
+            return;
+        }
+
+        switch (key) {
+            case 'ArrowUp':
+                move(Direction.Up);
+                break;
+            case 'ArrowDown':
+                move(Direction.Down);
+                break;
+            case 'ArrowLeft':
+                move(Direction.Left);
+                break;
+            case 'ArrowRight':
+                move(Direction.Right);
+                break;
+        }
+    }
+
+    onMount(() => {
+        window.addEventListener('keydown', handleKeydown);
+        return () => {
+            window.removeEventListener('keydown', handleKeydown);
+        };
+    });
+
 </script>
 
 <div class="input-grid" style={`--grid-size: ${crossword.size}`}>
@@ -73,15 +110,18 @@
                         { square.number }
                     </div>
                 {/if}
-                <input 
-                    bind:this={inputElements[index]}
-                    type="text" 
-                    class="input-grid__input"
-                    class:highlighted={isHighlighted(square, index)}
-                    value={square.value}
-                    maxlength={ square.rebus ? 1 : 6 }
-                    {disabled}
-                />
+                {#key cursor}
+                    <input 
+                        on:click={() => select(index)}
+                        bind:this={inputElements[index]}
+                        bind:value={square.value}
+                        type="text" 
+                        class="input-grid__input"
+                        class:highlighted={isHighlighted(square, index)}
+                        maxlength={ square.rebus ? 1 : 6 }
+                        {disabled}
+                    />
+                {/key}
             {/if}
         </div> 
     {/each}
