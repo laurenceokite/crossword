@@ -4,6 +4,7 @@
     import editable from "$lib/editor/editable";
     import { Orientation } from "$lib/types";
     import type { CursorState } from "$lib/cursor";
+    import { updateValue } from "$lib/editor/commands/update-value";
 
     export let init: Crossword;
     let cursor: CursorState = {
@@ -14,10 +15,15 @@
 
     $: editable.load(init);
 
+    function handleInput(event: CustomEvent<string>) {
+        const value = event.detail;
+        editable.execute(updateValue(cursor.index, value));
+    };
+
 </script>
 
 <div>
     <div>
-        <EditorGrid bind:cursor />
+        <EditorGrid bind:cursor on:input={handleInput}/>
     </div>
 </div>

@@ -94,7 +94,13 @@
         }
     }
 
-    function handleInput(event: Event) {
+    function handleInput() {
+        if (!currentInput) {
+            return;
+        }
+
+        currentInput.value = currentInput.value.toLocaleUpperCase('en-US');
+        dispatch('input', currentInput.value);
         selectNextEmptySquare();
     }
 
@@ -168,19 +174,20 @@
                     </div>
                 {/if}
                 {#key cursor}
+                    
                     <input 
                         on:click={() => select(index)}
-                        on:input={handleInput}
-                        on:keydown
+                        on:input={() => handleInput()}
                         bind:this={inputElements[index]}
                         bind:value={square.value}
+                        
                         type="text" 
                         class="input-grid__input"
                         class:highlighted={isHighlighted(square, index)}
                         maxlength={ square.rebus ? 1 : 6 }
                         {disabled}
                     />
-                {/key}
+                {/key }
             {/if}
         </div> 
     {/each}
