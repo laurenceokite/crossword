@@ -70,7 +70,7 @@
             return;
         }
 
-        switch (key) {
+        switch (key) {   
             case 'ArrowUp':
                 event.preventDefault();
                 move(Direction.Up);
@@ -164,6 +164,13 @@
         move(cursor.orientation === Orientation.Across ? Direction.Left : Direction.Up)
     }
 
+    function handleSpace(event: KeyboardEvent) {
+        if (event.key === " ") {
+            event.preventDefault();
+            toggleOrientation();
+        }
+    }
+
 
     function move(direction: Direction) {
         const [x, y] = get2DIndices(cursor.index, crossword.size)
@@ -190,6 +197,13 @@
         cursor = {
             ...cursor,
             index
+        }
+    }
+
+    function toggleOrientation() {
+        cursor = {
+            ...cursor,
+            orientation: cursor.orientation === Orientation.Across ? Orientation.Down : Orientation.Across
         }
     }
 
@@ -265,6 +279,7 @@
         {#key cursor}
             <div
                 class="input-grid__square-container"
+                class:highlighted={isHighlighted(square, index)}
             > 
                 {#if !square.isBlack}
                     {#if square.number}
@@ -278,12 +293,11 @@
                             on:click={() => select(index)}
                             on:input={() => handleInput()}
                             on:keydown={handleBackspace}
+                            on:keydown={handleSpace}
                             bind:this={inputElements[index]}
                             bind:value={square.value}
-                            
                             type="text" 
-                            class="input-grid__input"
-                            class:highlighted={isHighlighted(square, index)}
+                            class="input-grid__input"                         
                             maxlength="6"
                             {disabled}
                         />
@@ -295,22 +309,67 @@
 </div>
 
 
-<style>
+<style lang="less">
+:root {
+    --min-sq-size: 1.25rem;
+    --pale-grey: #F9F9F9;
+    --light-grey: #BCBAB8;
+    --mid-grey: #9D8F8F;
+    --deep-grey: #625757;
+    --pale-green: #F7FFE5;
+    --light-green: #E1ECC8;
+    --mid-green: #C4D7B2;
+    --deep-green: #A0C49D;
+    --pale-blue: #DBDFEA;
+    --light-blue: #B4D4FF;
+    --mid-blue: #6096B4;
+    --deep-blue: #537188;
+    --pale-yellow: #FDFDC4;
+    --light-yellow: #FFFBBE;
+    --mid-yellow: #FEE4A6;
+    --deep-yellow: #FFD2A5;
+}
+
 .input-grid { 
     display: grid;
     grid-template-columns: repeat(var(--grid-size), 1fr);
     grid-template-rows: repeat(var(--grid-size), 1fr);
+    aspect-ratio: 1;
+    grid-gap: 2px;
+    width: 100%;
+    border: 3px solid var(--deep-grey);
+    border-radius: 5px;
 
     &__square-container {
-        aspect-ratio: 1;
+        position: relative;
+        max-width: 5rem;
+        min-width: var(--min-sq-size);
+        outline: 1px solid var(--deep-grey);
     }
 
     & .highlighted {
-        background-color: #56789a; 
+        background-color: var(--light-blue); 
+
     }
 
-    &__input {
+    &__input {        
         background-color: transparent;
+        text-align: center;
+        font-size: var;
+        font-weight: 500;
+        width: 100%;
+        height: 100%;
+        border: none;
+
+        &:focus {
+            background-color: var(--light-yellow);
+        }
+    }
+
+    &__number {
+        position: absolute;
+        right: 10%;
+        top: 5%;
     }
 }
 </style>
