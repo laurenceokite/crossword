@@ -1,8 +1,7 @@
 <script lang="ts">
     import editable from "$lib/editor/editable";
     import type { Square, WhiteSquare } from "$lib/crossword";
-    import { type  CursorState, Direction, get2DIndices, moveCursor, isAtMovementBound } from "$lib/cursor";
-    import { Orientation } from "$lib/types";
+    import { type  CursorState, Direction, Orientation, get2DIndices, moveCursor, isAtMovementBound, forward, getInterval } from "$lib/cursor";
     import { createEventDispatcher, onMount } from "svelte";
 
     export let editing = true;
@@ -14,13 +13,48 @@
 
     const crossword = editing ? $editable : $editable;
     let inputElements: HTMLInputElement[] = [];
-
+    let currentWord: [number, WhiteSquare][] = [];
+    let currentWordIsFull: boolean = false;
+    let isAmendingWord: boolean = false;
+    let wordIndex: number | null;
+    let currentNumber: number;
+    let previousNumber: number;
+    let previousOrientation = cursor.orientation;
+    
     $: currentSquare = crossword.grid[cursor.index] ?? null;
     $: currentInput = inputElements[cursor.index] ?? null;
 
     $: {
+        if (
+            currentSquare 
+            && !currentSquare.isBlack
+            && currentSquare[cursor.orientation] !== currentNumber
+        ) {
+            previousNumber = currentNumber;
+            currentNumber = currentSquare[cursor.orientation];
+            isAmendingWord = false;
+        }
+    };
+
+    $: {
+        if (
+            previousOrientation !== cursor.orientation || 
+            previousNumber !== currentNumber && 
+            !currentSquare.isBlack
+        ) {
+            previousOrientation = cursor.orientation;
+            currentWord = mapCurrentSet();
+            currentWordIsFull = currentWord.every(t => t[1].value !== "");
+        }
+    }
+
+    $: wordIndex = currentWord.findIndex(item => item[0] === cursor.index);
+
+    $: {
         if (!disabled && currentInput) {
             currentInput.focus();
+            currentInput.selectionStart = currentInput.value.length;
+            currentInput.selectionEnd = currentInput.value.length;
         }
     }
 
@@ -30,21 +64,106 @@
         }
     }
 
-    function isHighlighted(square: Square, index: number): boolean {
-        if (
-            cursor.index === index 
-            || square.isBlack
-            || currentSquare.isBlack
-        ) {
-            return false;
+    function handleKeydown(event: KeyboardEvent) {
+        const { key } = event;
+        if (disabled) {
+            return;
         }
 
-        if (currentSquare?.[cursor.orientation] === square[cursor.orientation]) {
-            return true;
+        switch (key) {
+            case 'ArrowUp':
+                event.preventDefault();
+                move(Direction.Up);
+                break;
+            case 'ArrowDown':
+                event.preventDefault();
+                move(Direction.Down);
+                break;
+            case 'ArrowLeft':
+                event.preventDefault();
+                move(Direction.Left);
+                break;
+            case 'ArrowRight':
+                event.preventDefault();
+                move(Direction.Right);
+                break;
+        }
+    }
+
+    function handleInput() {
+        if (!currentInput) {
+            return;
         }
 
-        return false;
-    } 
+        const isFull = currentWordIsFull;
+
+        // Allow copy pasta to be automatically handled as rebus
+        if (currentInput.value.length === 2) {
+            currentInput.value = currentInput.value.slice(1);
+        }
+        currentInput.value = currentInput.value.toLocaleUpperCase('en-US');
+        dispatch('input', currentInput.value);
+
+        if (isFull || isAmendingWord) {
+            move(forward(cursor.orientation));
+            return;
+        }
+
+        if (currentWord.length && wordIndex != null) {
+            let index = wordIndex + 1;
+
+            for (let i = 0; i < currentWord.length - 1; i++) {
+
+                if (index >= currentWord.length) {
+                    index = 0;
+                }
+
+                if (currentWord[index] && !currentWord[index][1].value) {
+                    select(currentWord[index][0]);
+                    return;
+                }
+
+                index++
+            }
+        }
+
+        const interval = getInterval(cursor.orientation, crossword.size);
+        let index = currentWord[currentWord.length - 1][0] + interval;
+        
+        for (let i = 0; i < crossword.grid.length; i++) {
+            if (index >= crossword.grid.length) {
+                index -= crossword.grid.length;
+            }
+
+            const square = crossword.grid[index] ?? null;
+
+            if (square && !square.isBlack && !square.value) {
+                select(index);
+                return;
+            }
+
+            index += interval;
+        }
+    }
+
+    function handleBackspace(event: KeyboardEvent) {
+        const { key } = event;
+
+        if (key !== "Backspace") {
+            return;
+        }
+
+        if (!currentInput) {
+            return;
+        }
+
+        event.preventDefault();
+        currentInput.value = '';
+        dispatch('input', currentInput.value);
+
+        move(cursor.orientation === Orientation.Across ? Direction.Left : Direction.Up)
+    }
+
 
     function move(direction: Direction) {
         const [x, y] = get2DIndices(cursor.index, crossword.size)
@@ -63,6 +182,8 @@
         }
 
         cursor = newState;
+
+        isAmendingWord = previousNumber === currentNumber;
     }
 
     function select(index: number) {
@@ -72,83 +193,60 @@
         }
     }
 
-    function handleKeydown(event: KeyboardEvent) {
-        const { key } = event;
-        if (disabled) {
-            return;
+    function mapCurrentSet(): [number, WhiteSquare][] {
+        if (currentSquare.isBlack) {
+            return [];
         }
 
-        switch (key) {
-            case 'ArrowUp':
-                move(Direction.Up);
-                break;
-            case 'ArrowDown':
-                move(Direction.Down);
-                break;
-            case 'ArrowLeft':
-                move(Direction.Left);
-                break;
-            case 'ArrowRight':
-                move(Direction.Right);
-                break;
-        }
-    }
+        let set: [number, WhiteSquare][] = [];
+        
+        const [x, y] = get2DIndices(cursor.index, crossword.size);
+        let index = y * crossword.size + x;
 
-    function handleInput() {
-        if (!currentInput) {
-            return;
-        }
-
-        currentInput.value = currentInput.value.toLocaleUpperCase('en-US');
-        dispatch('input', currentInput.value);
-        selectNextEmptySquare();
-    }
-
-    function selectNextEmptySquare() {
-        const origin = crossword.grid[cursor.index] as WhiteSquare;
-        const interval = cursor.orientation === Orientation.Across ? 1 : crossword.size;
-        let index = cursor.index + interval;
-
-        const inOrigin = (i: number): boolean => {
-            if (i >= crossword.grid.length) {
-                return false;
-            }
-            const square = crossword.grid[i]
-            return !square?.isBlack && square[cursor.orientation] === origin[cursor.orientation];
-        }
-
-        // Forward in word
-        for (index; inOrigin(index); index += interval) {
-            const square = crossword.grid[index];
-            if (!square.isBlack && !square.value) {
-                select(index);
-                return;
-            }
-        }
-
-        // Backward in word
-        for (let i = cursor.index - interval; inOrigin(i); i -= interval) {
-            const square = crossword.grid[index];
-            if (!square.isBlack && !square.value) {
-                select(index);
-                return;
-            }
-        }
-
-        for (let i = 0; i < crossword.grid.length; i++) {
-            if (index <= crossword.grid.length) {
-                index -= crossword.grid.length;
-            }
-
+        const interval = cursor.orientation === Orientation.Across ? 1 : crossword.size
+        
+        for (let i = index; i >= 0; i -= interval) {
             const square = crossword.grid[i];
 
-            if (!square.isBlack && !square.value) {
-                select(index);
-                return;
-            }
+            if (
+                !square 
+                || square.isBlack 
+                || square[cursor.orientation] !== currentSquare[cursor.orientation]
+            ) break;
 
-            index += interval;
+            set.unshift([i, square]);
         }
+        
+        for (let i = index + 1; i < crossword.grid.length; i += interval) {
+            const square = crossword.grid[i];
+
+            if (
+                !square 
+                || square.isBlack 
+                || square[cursor.orientation] !== currentSquare[cursor.orientation]
+            ) break;
+
+            set.push([i, square]);
+        }
+
+        return set;
+    }
+
+    function isHighlighted(square: Square, index: number): boolean {
+        if (
+            cursor.index === index 
+            || square.isBlack
+            || !currentSquare
+            || currentSquare.isBlack
+        ) {
+            return false;
+        }
+
+        if (currentSquare?.[cursor.orientation] === square[cursor.orientation]) {
+            return true;
+        }
+
+        return false;
     }
 
     const dispatch = createEventDispatcher<{ input: string }>();
@@ -164,32 +262,35 @@
 
 <div class="input-grid" style={`--grid-size: ${crossword.size}`}>
     {#each crossword.grid as square, index}
-        <div
-            class="input-grid__square-container"
-        > 
-            {#if !square.isBlack}
-                {#if square.number}
-                    <div class="input-grid__number">
-                        { square.number }
-                    </div>
-                {/if}
-                {#key cursor}
-                    
-                    <input 
-                        on:click={() => select(index)}
-                        on:input={() => handleInput()}
-                        bind:this={inputElements[index]}
-                        bind:value={square.value}
+        {#key cursor}
+            <div
+                class="input-grid__square-container"
+            > 
+                {#if !square.isBlack}
+                    {#if square.number}
+                        <div class="input-grid__number">
+                            { square.number }
+                        </div>
+                    {/if}
+                    {#key square.value}
                         
-                        type="text" 
-                        class="input-grid__input"
-                        class:highlighted={isHighlighted(square, index)}
-                        maxlength={ square.rebus ? 1 : 6 }
-                        {disabled}
-                    />
-                {/key }
-            {/if}
-        </div> 
+                        <input 
+                            on:click={() => select(index)}
+                            on:input={() => handleInput()}
+                            on:keydown={handleBackspace}
+                            bind:this={inputElements[index]}
+                            bind:value={square.value}
+                            
+                            type="text" 
+                            class="input-grid__input"
+                            class:highlighted={isHighlighted(square, index)}
+                            maxlength="6"
+                            {disabled}
+                        />
+                    {/key }
+                {/if}
+            </div> 
+        {/key}
     {/each}
 </div>
 

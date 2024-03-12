@@ -1,11 +1,15 @@
 import type { Crossword, Square, WhiteSquare } from "./crossword";
-import { Orientation } from "./types";
 
 export enum Direction {
     Left, 
     Up,
     Down,
-    Right    
+    Right,
+}
+
+export enum Orientation {
+    Across = "across",
+    Down = "down"
 }
 
 export interface CursorState {
@@ -13,12 +17,24 @@ export interface CursorState {
     index: number
 }
 
+export function forward(orientation: Orientation): Direction {
+    return orientation === Orientation.Across ? Direction.Right : Direction.Down;
+} 
+
+export function back(orientation: Orientation): Direction {
+    return orientation === Orientation.Across ? Direction.Left : Direction.Up;
+} 
+
 export function get2DIndices(index: number, size: number): [x: number, y: number] {
     return [
         index % size,
         Math.floor(index / size)
     ]
 } 
+
+export function getInterval(orientation: Orientation, size: number): number {
+    return orientation === Orientation.Across ? 1 : size;
+}
 
 export function moveCursor(
     direction: Direction, 

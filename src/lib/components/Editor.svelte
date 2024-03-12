@@ -2,8 +2,7 @@
     import type { Crossword } from "$lib/crossword";
     import EditorGrid from "./EditorGrid.svelte";
     import editable from "$lib/editor/editable";
-    import { Orientation } from "$lib/types";
-    import type { CursorState } from "$lib/cursor";
+    import { type CursorState, Orientation } from "$lib/cursor";
     import { updateValue } from "$lib/editor/commands/update-value";
 
     export let init: Crossword;
