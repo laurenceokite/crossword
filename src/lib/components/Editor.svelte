@@ -23,7 +23,7 @@
 
 <div class="editor">
     <div class="editor__input-grid">
-        <InputGrid bind:cursor on:input={handleInput}/>
+        <InputGrid bind:cursor on:input={handleInput} --grid-size={crossword.size}/>
     </div>
 </div>
 

@@ -274,7 +274,7 @@
 
 </script>
 
-<div class="input-grid" style={`--grid-size: ${crossword.size}`}>
+<div class="input-grid">
     {#each crossword.grid as square, index}
         {#key cursor}
             <div
@@ -349,13 +349,12 @@
 
     & .highlighted {
         background-color: var(--light-blue); 
-
     }
 
     &__input {        
         background-color: transparent;
         text-align: center;
-        font-size: var;
+        font-size: 1.25rem;
         font-weight: 500;
         width: 100%;
         height: 100%;
@@ -363,6 +362,8 @@
 
         &:focus {
             background-color: var(--light-yellow);
+            outline: none;
+            caret-color: transparent;
         }
     }
 
@@ -370,6 +371,7 @@
         position: absolute;
         right: 10%;
         top: 5%;
+        font-size: .8rem;
     }
 }
 </style>
