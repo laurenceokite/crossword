@@ -59,7 +59,7 @@
     }
 
     $: {
-        if (disabled && currentInput === document.activeElement) {
+        if (disabled && currentInput) {
             currentInput.blur();
         }
     }
@@ -97,7 +97,7 @@
 
         const isFull = currentWordIsFull;
 
-        // Allow copy pasta to be automatically handled as rebus
+        // Allow copy paste to be automatically handled as rebus
         if (currentInput.value.length === 2) {
             currentInput.value = currentInput.value.slice(1);
         }
@@ -310,25 +310,6 @@
 
 
 <style lang="less">
-:root {
-    --min-sq-size: 1.25rem;
-    --pale-grey: #F9F9F9;
-    --light-grey: #BCBAB8;
-    --mid-grey: #9D8F8F;
-    --deep-grey: #625757;
-    --pale-green: #F7FFE5;
-    --light-green: #E1ECC8;
-    --mid-green: #C4D7B2;
-    --deep-green: #A0C49D;
-    --pale-blue: #DBDFEA;
-    --light-blue: #B4D4FF;
-    --mid-blue: #6096B4;
-    --deep-blue: #537188;
-    --pale-yellow: #FDFDC4;
-    --light-yellow: #FFFBBE;
-    --mid-yellow: #FEE4A6;
-    --deep-yellow: #FFD2A5;
-}
 
 .input-grid { 
     display: grid;

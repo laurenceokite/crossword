@@ -5,27 +5,30 @@ import { CommandExecutionResultType, type EditorCommand } from "./command";
 import type { EditableCrossword } from "./types";
 import { newGrid, numberSquares } from "./grid";
 
-const { subscribe, set, update } = writable<EditableCrossword>();
+const historyInit = {
+    undo: [],
+    redo: []
+}
 
-function load(crossword?: Crossword) {
-    const editorInit = {
-        history: { undo: [], redo: [] },     
-    }
-
-    if (!crossword) {
-        crossword = numberSquares({
+const { subscribe, set, update } = writable<EditableCrossword>(
+    {
+        ...numberSquares({
             grid: newGrid(15),
             size: 15
-        })
+        }), 
+        history: historyInit
     }
+);
 
+function load(crossword: Crossword) {
     if (!crossword.size) {
         crossword.size = Math.ceil(Math.sqrt(crossword.grid.length));
     }
 
+
     set({
         ...crossword,
-        ...editorInit
+        history: historyInit
     })
 }
 
