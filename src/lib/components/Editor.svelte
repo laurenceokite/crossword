@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Crossword } from "$lib/crossword";
     import InputGrid from "./InputGrid.svelte";
-    import editable from "$lib/editor/editable";
+    import editable from "$lib/stores/editable";
     import { type CursorState, Orientation } from "$lib/cursor";
     import { updateValue } from "$lib/editor/commands/update-value";
     import GridDesigner from "./GridDesigner.svelte";
@@ -61,7 +61,8 @@
 <div class="editor">
     {#if crossword}
         <div class="editor__grid">
-            <InputGrid 
+            <InputGrid
+                store={editable}
                 bind:cursor 
                 on:input={handleInput} 
                 --grid-size={crossword.size} 
@@ -69,6 +70,7 @@
             />
             {#if editMode === EditMode.Grid}
                 <GridDesigner 
+                    crossword={$editable}
                     bind:cursor 
                     on:toggleSquare={handleToggleSquare}
                     --grid-size={crossword.size} 

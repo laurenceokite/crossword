@@ -1,9 +1,9 @@
 
 import { writable } from "svelte/store";
 import type { Crossword } from "../crossword";
-import { CommandExecutionResultType, type EditorCommand } from "./command";
-import type { EditableCrossword } from "./types";
-import { newGrid, numberSquares } from "./grid";
+import { CommandExecutionResultType, type EditorCommand } from "../editor/command";
+import type { EditableCrossword } from "../editor/types";
+import { newGrid, numberSquares } from "../editor/grid";
 
 const historyInit = {
     undo: [],

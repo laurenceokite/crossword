@@ -1,33 +1,31 @@
 <script lang="ts">
-    import editable from "$lib/editor/editable";
+    import editable from "$lib/stores/editable";
     import { type  CursorState } from "$lib/cursor";
     import { toggleSquare } from "$lib/editor/commands/toggle-square";
     import { createEventDispatcher } from "svelte";
+    import type { Crossword } from "$lib/crossword";
 
     export let cursor: CursorState;
-
-    const crossword = $editable;
+    export let crossword: Crossword;
     
     $: currentSquare = crossword.grid[cursor.index] ?? null;
 
     const dispatch = createEventDispatcher<{ toggleSquare: number }>();
 
-    function handleToggleSquare(index: number) {
-        dispatch("toggleSquare", index);
-    }
-
 </script>
 
 
 <div class="grid-designer">
+    {#key crossword}
     {#each crossword.grid as square, index}
         <input 
             class="grid-designer__input"
             type="checkbox" 
             value={square.isBlack}
-            on:change={() => handleToggleSquare(index)}
+            on:change={() => dispatch("toggleSquare", index)}
         /> 
     {/each}
+    {/key}
 </div>
 
 <style lang="less">

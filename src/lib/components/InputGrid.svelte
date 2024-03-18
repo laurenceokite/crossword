@@ -1,17 +1,17 @@
 <script lang="ts">
-    import editable from "$lib/editor/editable";
-    import type { Square, WhiteSquare } from "$lib/crossword";
-    import { type  CursorState, Direction, Orientation, get2DIndices, moveCursor, isAtMovementBound, forward, getInterval } from "$lib/cursor";
+    import editable from "$lib/stores/editable";
+    import type { Square, WhiteSquare, Crossword } from "$lib/crossword";
+    import { type  CursorState, Direction, Orientation, get2DIndices, moveCursor, forward, isAtMovementBound, getInterval } from "$lib/cursor";
     import { createEventDispatcher, onMount } from "svelte";
+    import type { Readable } from "svelte/store";
 
-    export let editing = true;
     export let disabled = false;
+    export let store: Readable<Crossword>;
     export let cursor: CursorState = {
         orientation: Orientation.Across,
         index: 0
     };
 
-    const crossword = editing ? $editable : $editable;
     let inputElements: HTMLInputElement[] = [];
     let currentWord: [number, WhiteSquare][] = [];
     let currentWordIsFull: boolean = false;
@@ -19,11 +19,13 @@
     let wordIndex: number | null;
     let currentNumber: number;
     let previousNumber: number;
-    let previousOrientation = cursor.orientation;
+    let previousOrientation = cursor.orientation; 
     
+    $: crossword = $store;
     $: currentSquare = crossword.grid[cursor.index] ?? null;
     $: currentInput = inputElements[cursor.index] ?? null;
 
+    // Check if the clue number has changed
     $: {
         if (
             currentSquare 
@@ -36,6 +38,7 @@
         }
     };
 
+    // If the clue number changes, get the squares of the new word
     $: {
         if (
             previousOrientation !== cursor.orientation || 
@@ -48,8 +51,10 @@
         }
     }
 
+    // Find the selected square index within the current word
     $: wordIndex = currentWord.findIndex(item => item[0] === cursor.index);
 
+    // Make sure the current input is always in focus
     $: {
         if (!disabled && currentInput) {
             currentInput.focus();
@@ -58,6 +63,7 @@
         }
     }
 
+    // Unfocus the input when disabled
     $: {
         if (disabled && currentInput) {
             currentInput.blur();
@@ -263,10 +269,6 @@
         return false;
     }
 
-    function isBlack(index: number) {
-        return crossword.grid[index].isBlack
-    }
-
     const dispatch = createEventDispatcher<{ input: string }>();
 
     onMount(() => {
@@ -280,11 +282,11 @@
 
 <div class="input-grid">
     {#each crossword.grid as square, index}
-        {#key [cursor, crossword]}
+        {#key [cursor, $store]}
             <div
                 class="input-grid__square-container"
                 class:highlighted={isHighlighted(square, index)}
-                class:is-black={isBlack(index)}
+                class:is-black={square.isBlack}
             > 
                 {#if !square.isBlack}
                     {#if !disabled && square.number }
