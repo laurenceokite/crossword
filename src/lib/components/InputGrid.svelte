@@ -263,6 +263,10 @@
         return false;
     }
 
+    function isBlack(index: number) {
+        return crossword.grid[index].isBlack
+    }
+
     const dispatch = createEventDispatcher<{ input: string }>();
 
     onMount(() => {
@@ -276,19 +280,18 @@
 
 <div class="input-grid">
     {#each crossword.grid as square, index}
-        {#key cursor}
+        {#key [cursor, crossword]}
             <div
                 class="input-grid__square-container"
                 class:highlighted={isHighlighted(square, index)}
+                class:is-black={isBlack(index)}
             > 
                 {#if !square.isBlack}
-                    {#if square.number}
+                    {#if !disabled && square.number }
                         <div class="input-grid__number">
                             { square.number }
                         </div>
-                    {/if}
-                    {#key square.value}
-                        
+                    {/if}                       
                         <input 
                             on:click={() => select(index)}
                             on:input={() => handleInput()}
@@ -301,7 +304,6 @@
                             maxlength="6"
                             {disabled}
                         />
-                    {/key }
                 {/if}
             </div> 
         {/key}
@@ -330,6 +332,10 @@
 
     & .highlighted {
         background-color: var(--light-blue); 
+    }
+
+    & .is-black {
+        background-color: black;
     }
 
     &__input {        

@@ -7,6 +7,7 @@
     import GridDesigner from "./GridDesigner.svelte";
     import { EditMode } from "$lib/editor/types";
     import { onMount } from "svelte";
+    import { toggleSquare } from "$lib/editor/commands/toggle-square";
 
     export let init: Crossword | undefined = undefined;
 
@@ -17,14 +18,15 @@
     let editMode = EditMode.Grid;
     const crossword = $editable;
 
-    $: if (init) {
-        editable.load(init);
-    }
-
     function handleInput(event: CustomEvent<string>) {
         const value = event.detail;
         editable.execute(updateValue(cursor.index, value));
     };
+
+    function handleToggleSquare(event: CustomEvent<number>) {
+        const index = event.detail;
+        editable.execute(toggleSquare(index));
+    }
 
     function handleKeydown(event: KeyboardEvent) {
         const { key } = event;
@@ -45,6 +47,9 @@
     }
 
     onMount(() => {
+        if (init) {
+            editable.load(init);
+        }
         window.addEventListener('keydown', handleKeydown);
         return () => {
             window.removeEventListener('keydown', handleKeydown);
@@ -65,6 +70,7 @@
             {#if editMode === EditMode.Grid}
                 <GridDesigner 
                     bind:cursor 
+                    on:toggleSquare={handleToggleSquare}
                     --grid-size={crossword.size} 
                 />
             {/if}
