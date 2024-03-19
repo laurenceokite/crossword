@@ -1,5 +1,4 @@
 <script lang="ts">
-    import editable from "$lib/stores/editable";
     import type { Square, WhiteSquare, Crossword } from "$lib/crossword";
     import { type  CursorState, Direction, Orientation, get2DIndices, moveCursor, forward, isAtMovementBound, getInterval } from "$lib/cursor";
     import { createEventDispatcher, onMount } from "svelte";
@@ -275,9 +274,8 @@
         window.addEventListener('keydown', handleKeydown, { capture: true });
         return () => {
             window.removeEventListener('keydown', handleKeydown);
-        };
+        };                                    
     });
-
 </script>
 
 <div class="input-grid">
