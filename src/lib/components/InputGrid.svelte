@@ -3,6 +3,7 @@
     import { type  CursorState, Direction, Orientation, get2DIndices, moveCursor, forward, isAtMovementBound, getInterval } from "$lib/cursor";
     import { createEventDispatcher, onMount } from "svelte";
     import type { Readable } from "svelte/store";
+    import InputGridSquare from "./InputGridSquare.svelte";
 
     export let disabled = false;
     export let store: Readable<Crossword>;
@@ -11,7 +12,6 @@
         index: 0
     };
 
-    let inputElements: HTMLInputElement[] = [];
     let currentWord: [number, WhiteSquare][] = [];
     let currentWordIsFull: boolean = false;
     let isAmendingWord: boolean = false;
@@ -21,9 +21,7 @@
     let previousOrientation = cursor.orientation; 
     
     $: crossword = $store;
-    $: currentSquare = crossword.grid[cursor.index] ?? null;
-    $: currentInput = inputElements[cursor.index] ?? null;
-
+    
     // Check if the clue number has changed
     $: {
         if (
@@ -53,24 +51,9 @@
     // Find the selected square index within the current word
     $: wordIndex = currentWord.findIndex(item => item[0] === cursor.index);
 
-    // Make sure the current input is always in focus
-    $: {
-        if (!disabled && currentInput) {
-            currentInput.focus();
-            currentInput.selectionStart = currentInput.value.length;
-            currentInput.selectionEnd = currentInput.value.length;
-        }
-    }
-
-    // Unfocus the input when disabled
-    $: {
-        if (disabled && currentInput) {
-            currentInput.blur();
-        }
-    }
-
     function handleKeydown(event: KeyboardEvent) {
         const { key } = event;
+
         if (disabled) {
             return;
         }
@@ -95,12 +78,8 @@
         }
     }
 
-    function handleInput() {
-        if (!currentInput) {
-            return;
-        }
-
-        const isFull = currentWordIsFull;
+    function handleInput(event: Event) {
+        
 
         // Allow copy paste to be automatically handled as rebus
         if (currentInput.value.length === 2) {
@@ -168,15 +147,7 @@
 
         move(cursor.orientation === Orientation.Across ? Direction.Left : Direction.Up)
     }
-
-    function handleSpace(event: KeyboardEvent) {
-        if (event.key === " ") {
-            event.preventDefault();
-            toggleOrientation();
-        }
-    }
-
-
+    
     function move(direction: Direction) {
         const [x, y] = get2DIndices(cursor.index, crossword.size)
         let newState = moveCursor(direction, crossword, cursor, x, y);
@@ -251,23 +222,6 @@
         return set;
     }
 
-    function isHighlighted(square: Square, index: number): boolean {
-        if (
-            cursor.index === index 
-            || square.isBlack
-            || !currentSquare
-            || currentSquare.isBlack
-        ) {
-            return false;
-        }
-
-        if (currentSquare?.[cursor.orientation] === square[cursor.orientation]) {
-            return true;
-        }
-
-        return false;
-    }
-
     const dispatch = createEventDispatcher<{ input: string }>();
 
     onMount(() => {
@@ -280,32 +234,15 @@
 
 <div class="input-grid">
     {#each crossword.grid as square, index}
-        {#key [cursor, $store]}
-            <div
-                class="input-grid__square-container"
-                class:highlighted={isHighlighted(square, index)}
-                class:is-black={square.isBlack}
-            > 
-                {#if !square.isBlack}
-                    {#if !disabled && square.number }
-                        <div class="input-grid__number">
-                            { square.number }
-                        </div>
-                    {/if}                       
-                        <input 
-                            on:click={() => select(index)}
-                            on:input={() => handleInput()}
-                            on:keydown={handleBackspace}
-                            on:keydown={handleSpace}
-                            bind:this={inputElements[index]}
-                            bind:value={square.value}
-                            type="text" 
-                            class="input-grid__input"                         
-                            maxlength="6"
-                            {disabled}
-                        />
-                {/if}
-            </div> 
+        {#key cursor}
+            <InputGridSquare 
+                on:input={handleInput}
+                square={square.isBlack ? null : square}
+                selected={index === cursor.index}
+                highlighted={false}
+                {index}
+                {disabled}
+            /> 
         {/key}
     {/each}
 </div>

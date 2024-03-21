@@ -7,7 +7,6 @@
     export let highlighted: boolean;
     export let disabled: boolean;
     export let selected: boolean;
-    export let rebus: boolean;
 
     let inputElement: HTMLInputElement | null = null;
 
@@ -25,7 +24,6 @@
     class="input-grid-square__container"
     class:highlighted={highlighted}
     class:is-black={!square}
-    on:input
 > 
     {#if square}
         {#if !disabled && square.number }

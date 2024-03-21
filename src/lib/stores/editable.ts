@@ -1,5 +1,4 @@
-
-import { writable } from "svelte/store";
+import { derived, writable } from "svelte/store";
 import type { Crossword } from "../crossword";
 import { CommandExecutionResultType, type EditorCommand } from "../editor/command";
 import type { EditableCrossword } from "../editor/types";
@@ -24,7 +23,6 @@ function load(crossword: Crossword) {
     if (!crossword.size) {
         crossword.size = Math.ceil(Math.sqrt(crossword.grid.length));
     }
-
 
     set({
         ...crossword,
