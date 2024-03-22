@@ -1,4 +1,4 @@
-import type { Crossword } from "$lib/crossword";
+import type { Crossword } from "../crossword";
 import type { EditorCommand } from "./command";
 
 export interface EditableCrossword extends Crossword {

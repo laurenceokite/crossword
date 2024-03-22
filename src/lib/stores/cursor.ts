@@ -1,5 +1,5 @@
-import type { Crossword } from "$lib/crossword";
-import { Orientation, type CursorState, Direction } from "$lib/cursor";
+import type { Crossword } from "../crossword";
+import { Orientation, type CursorState, Direction } from "../cursor";
 import { writable } from "svelte/store";
 
 const cursorStore = writable<CursorState>({
@@ -66,6 +66,16 @@ function nextEmptySquare(crossword: Crossword) {
     }); 
 }
 
+function toggleOrientation() {
+    cursorStore.update(cursor => { 
+        const orientation = getOppositeOrientation(cursor);
+        return {
+            ...cursor,
+            orientation
+        }
+    });
+}
+
 function getIncrement(crossword: Crossword, direction: Direction): number {
     let increment = 0;
 
@@ -85,6 +95,10 @@ function getIncrement(crossword: Crossword, direction: Direction): number {
     
     return increment;
 } 
+
+function getOppositeOrientation(cursor: CursorState) {
+    return cursor.orientation === Orientation.Across ? Orientation.Down : Orientation.Across;
+}
 
 function forward(orientation: Orientation): Direction {
     return orientation === Orientation.Across ? Direction.Right : Direction.Down;
@@ -119,5 +133,5 @@ function isAtMovementBound(crossword: Crossword, direction: Direction, index: nu
 export default {
     subscribe: cursorStore.subscribe,
     move,
-    nextEmptySquare
+    nextEmptySquare,
 }

@@ -1,13 +1,13 @@
 <script lang="ts">
-    import type { Crossword } from "$lib/crossword";
+    import type { Crossword } from "../crossword";
     import InputGrid from "./InputGrid.svelte";
-    import editable from "$lib/stores/editable";
-    import { type CursorState, Orientation } from "$lib/cursor";
-    import { updateValue } from "$lib/editor/commands/update-value";
+    import editable from "../stores/editable";
+    import { type CursorState, Orientation } from "../cursor";
+    import { updateValue } from "../editor/commands/update-value";
     import GridDesigner from "./GridDesigner.svelte";
-    import { EditMode } from "$lib/editor/types";
+    import { EditMode } from "../editor/types";
     import { onMount } from "svelte";
-    import { toggleSquare } from "$lib/editor/commands/toggle-square";
+    import { toggleSquare } from "../editor/commands/toggle-square";
 
     export let init: Crossword | undefined = undefined;
 
@@ -28,16 +28,6 @@
         editable.execute(toggleSquare(index));
     }
 
-    function handleKeydown(event: KeyboardEvent) {
-        const { key } = event;
-
-        switch (key) {
-            case 'Escape':
-                event.preventDefault();
-                toggleGridMode();
-        }
-    }
-
     function toggleGridMode() {
         if (editMode !== EditMode.Grid) {
             editMode = EditMode.Grid;
@@ -50,10 +40,6 @@
         if (init) {
             editable.load(init);
         }
-        window.addEventListener('keydown', handleKeydown);
-        return () => {
-            window.removeEventListener('keydown', handleKeydown);
-        };
     });
 
 </script>
@@ -62,19 +48,12 @@
     {#if crossword}
         <div class="editor__grid">
             <InputGrid
-                store={editable}
-                bind:cursor 
-                on:input={handleInput} 
-                --grid-size={crossword.size} 
+                on:input={handleInput}
+                editor={true} 
                 disabled={editMode !== EditMode.Insert}
             />
             {#if editMode === EditMode.Grid}
-                <GridDesigner 
-                    crossword={$editable}
-                    bind:cursor 
-                    on:toggleSquare={handleToggleSquare}
-                    --grid-size={crossword.size} 
-                />
+                <GridDesigner />
             {/if}
         </div>
     {/if}

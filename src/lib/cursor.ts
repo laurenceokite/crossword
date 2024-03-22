@@ -1,5 +1,3 @@
-import type { Crossword, } from "./crossword";
-
 export enum Direction {
     Left, 
     Up,
