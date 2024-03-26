@@ -26,15 +26,14 @@
     class:is-black={!square}
 > 
     {#if square}
-        {#if !disabled && square.number }
             <div class="input-grid-square__number">
                 { square.number }
-            </div>
-        {/if}                       
+            </div>                    
             <input
                 on:click={() => dispatch("select", index)}
                 bind:value={square.value}
                 bind:this={inputElement}
+                data-index={index}
                 type="text" 
                 class="input-grid__input"                         
                 maxlength="6"

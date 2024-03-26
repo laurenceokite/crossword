@@ -3,6 +3,8 @@ import type { Crossword } from "../crossword";
 import { CommandExecutionResultType, type EditorCommand } from "../editor/command";
 import type { EditableCrossword } from "../editor/types";
 import { newGrid, numberSquares } from "../editor/grid";
+import type { CrosswordStore } from "./types";
+import { createWordStore } from "./word";
 
 const historyInit = {
     undo: [],
@@ -106,5 +108,6 @@ export default {
     load,
     undo,
     redo,
-    execute
-}
+    execute,
+    wordStore: createWordStore({subscribe})
+};

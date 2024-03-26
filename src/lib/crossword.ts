@@ -9,6 +9,7 @@ export type Square = WhiteSquare | BlackSquare;
 
 export interface WhiteSquare {
     readonly isBlack: false;
+    index: number;
     value: string;
     across: number;
     down: number;

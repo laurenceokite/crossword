@@ -50,7 +50,7 @@
             <InputGrid
                 on:input={handleInput}
                 editor={true} 
-                disabled={editMode !== EditMode.Insert}
+                focused={editMode !== EditMode.Insert}
             />
             {#if editMode === EditMode.Grid}
                 <GridDesigner />

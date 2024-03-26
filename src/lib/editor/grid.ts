@@ -1,5 +1,5 @@
-import type { BlackSquare, Crossword } from "$lib/crossword";
-import type { Square, WhiteSquare } from "$lib/crossword";
+import type { BlackSquare, Crossword } from "../crossword";
+import type { Square, WhiteSquare } from "../crossword";
 
 function numberWord(grid: Square[], size: number, orientation: "across" | "down", index: number, number: number) {
     if (!grid[index] || grid[index].isBlack) {
@@ -31,12 +31,12 @@ export function numberSquares(crossword: Crossword): Crossword {
     const { size } = crossword;
     let number = 1;
 
-
     for (let i = 0; i < crossword.grid.length; i++) {
         const square = grid[i];
 
         if (square.isBlack) continue;
 
+        (grid[i] as WhiteSquare).index = i;
         const uidx = i - size;
         const up = uidx >= 0 ? grid[uidx] : null;
         const left = i > 0 ? grid[i - 1] : null;
@@ -74,6 +74,7 @@ export function numberSquares(crossword: Crossword): Crossword {
 export function whiteSquare(): WhiteSquare {
     return { 
         isBlack: false,
+        index: 0,
         value: "",
         across: 0,
         down: 0,

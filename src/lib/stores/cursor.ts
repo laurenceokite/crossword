@@ -9,7 +9,8 @@ const cursorStore = writable<CursorState>({
 
 function move(
     crossword: Crossword,
-    direction: Direction
+    direction: Direction,
+    skipBlack: boolean = false
 ) {
     cursorStore.update(cursor => {
         const targetOrientation = direction === Direction.Up || direction === Direction.Down 
@@ -26,44 +27,44 @@ function move(
         }
 
         if (
-            isAtMovementBound(crossword, direction, cursor.index)
+            isAtMovementBound(crossword.size, direction, cursor.index)
         ) {
             return cursor;
         }
 
         const increment = getIncrement(crossword, direction);
         const ciel = (crossword.size ** 2) - 1; 
+        let index = cursor.index + increment;
 
-        if ((increment + cursor.index) < 0 || (increment + cursor.index) > ciel) {
+        if (index < 0 || index > ciel) {
+            return cursor;
+        }
+
+        if (skipBlack && crossword.grid[index].isBlack) {
+            let position = cursor.orientation === Orientation.Across 
+                ? getXIndex(crossword.size, index) 
+                : getYIndex(crossword.size, index);
+
+            for (position; position < crossword.size; position++) {
+                index += increment;
+
+                if (crossword.grid[index] && !crossword.grid[index].isBlack) {
+                    return {
+                        ...cursor,
+                        index
+                    }
+                }
+            }
+
             return cursor;
         }
 
         return {
             ...cursor,
-            index: cursor.index + increment
+            index
         };
     });
-}
 
-function nextEmptySquare(crossword: Crossword) {
-    cursorStore.update(cursor => {
-        let i = cursor.index + getIncrement(crossword, forward(cursor.orientation));
-
-        for (let j = 1; j < crossword.grid.length; j++) {
-            const square = crossword.grid[i];
-
-            if (square.isBlack || !!square.value) {
-                continue;
-            }
-
-            return {
-                ...cursor,
-                index: i
-            }
-        };
-
-        return cursor;
-    }); 
 }
 
 function toggleOrientation() {
@@ -76,7 +77,20 @@ function toggleOrientation() {
     });
 }
 
-function getIncrement(crossword: Crossword, direction: Direction): number {
+function setIndex(crossword: Crossword, index: number) {
+    if (index < 0 || index >= crossword.size) {
+        return;
+    }
+
+    cursorStore.update(cursor => {
+        return {
+            ...cursor,
+            index
+        }
+    });
+} 
+
+export function getIncrement(crossword: Crossword, direction: Direction): number {
     let increment = 0;
 
     switch (direction) {
@@ -96,27 +110,31 @@ function getIncrement(crossword: Crossword, direction: Direction): number {
     return increment;
 } 
 
-function getOppositeOrientation(cursor: CursorState) {
+export function getOppositeOrientation(cursor: CursorState) {
     return cursor.orientation === Orientation.Across ? Orientation.Down : Orientation.Across;
 }
 
-function forward(orientation: Orientation): Direction {
+export function forward(orientation: Orientation): Direction {
     return orientation === Orientation.Across ? Direction.Right : Direction.Down;
 } 
 
-function backward(orientation: Orientation): Direction {
+export function backward(orientation: Orientation): Direction {
     return orientation === Orientation.Across ? Direction.Left : Direction.Up;
 } 
 
-function get2DIndices(crossword: Crossword, index: number): [x: number, y: number] {
+export function get2DIndices(size: number, index: number): [x: number, y: number] {
     return [
-        index % crossword.size,
-        Math.floor(index / crossword.size)
+        getXIndex(size, index),
+        getYIndex(size, index)
     ]
 } 
 
-function isAtMovementBound(crossword: Crossword, direction: Direction, index: number): boolean {
-    const [x, y] = get2DIndices(crossword, index);
+export const getXIndex = (size: number, index: number) => index % size;
+export const getYIndex = (size: number, index: number) => Math.floor(index / size);
+   
+
+export function isAtMovementBound(size: number, direction: Direction, index: number): boolean {
+    const [x, y] = get2DIndices(size, index);
 
     switch (direction) {
         case Direction.Left:
@@ -124,14 +142,15 @@ function isAtMovementBound(crossword: Crossword, direction: Direction, index: nu
         case Direction.Up:
             return y <= 0;
         case Direction.Right:
-            return x >= crossword.size - 1
+            return x >= size - 1
         case Direction.Down:
-            return y >= crossword.size - 1;
+            return y >= size - 1;
     } 
 }
 
 export default {
     subscribe: cursorStore.subscribe,
     move,
-    nextEmptySquare,
+    setIndex,
+    toggleOrientation
 }
