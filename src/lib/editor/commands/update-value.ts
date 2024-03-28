@@ -1,7 +1,7 @@
 import type { EditorCommand } from "../command";
-import type { Square, WhiteSquare } from "$lib/crossword";
+import type { Square, WhiteSquare } from "../../crossword";
 import { CommandExecutionResultType, EditorCommandType } from "../command";
-import type { Crossword } from "$lib/crossword";
+import type { Crossword } from "../../crossword";
 
 export function updateValue(index: number, value: string): EditorCommand {
     let previousState: Square | null = null;
@@ -13,7 +13,7 @@ export function updateValue(index: number, value: string): EditorCommand {
         ) {
             return {
                 type: CommandExecutionResultType.NoOperation,
-                crossword 
+                crossword
             }
         }
 
@@ -43,7 +43,7 @@ export function updateValue(index: number, value: string): EditorCommand {
         if (previousState) {
             grid[index] = previousState;
         }
-        
+
         return {
             ...crossword,
             grid

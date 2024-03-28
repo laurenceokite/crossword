@@ -1,46 +1,39 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import InputGridSquare from "./InputGridSquare.svelte";
     import editable from "../stores/editable";
-    import cursor, { backward } from "../stores/cursor";
+    import cursor, { backward, forward } from "../stores/cursor";
     import type { WhiteSquare, Square } from "../crossword";
-    import { Direction } from "../cursor";
-    import type { WordMap } from "../stores/types";
-    import { writable, type Writable } from "svelte/store";
+    import { Direction, Orientation } from "../cursor";
+    import { writable } from "svelte/store";
+    import { createEventDispatcher, onMount } from "svelte";
 
     export let disabled: boolean;
     export let editor: boolean = false;
 
     const crossword = editor ? editable : editable;
-    const wordStore = crossword.wordStore;
-    const selectedSquare: Writable<Square> = writable();
-    let previousSquare: Square;
+    const answerStore = crossword.answerStore;
 
-    $: updateSelectedSquare($crossword.grid[$cursor.index]);
+    $: selectedSquare = $crossword.grid[$cursor.index];
 
-    $: currentNumber = !$selectedSquare.isBlack
-        ? $selectedSquare[$cursor.orientation]
-        : null;
-
-    $: currentWord = getCurrentWord(
-        $wordStore[$cursor.orientation],
-        currentNumber,
+    let currentNumber = writable(
+        selectedSquare && !selectedSquare.isBlack
+            ? selectedSquare[$cursor.orientation]
+            : null,
     );
+    let skipToNextEmptySquare = true;
 
-    function getCurrentWord(
-        wordMap: WordMap,
-        number: number | null,
-    ): WhiteSquare[] | null {
-        if (!number) {
-            return null;
-        }
-        return wordMap.get(number) ?? null;
-    }
+    $: setCurrentNumber(selectedSquare, $cursor.orientation);
 
-    function updateSelectedSquare(newValue: Square) {
-        selectedSquare.update((previousValue) => {
-            if (previousSquare != previousValue) {
-                previousSquare = previousValue;
+    function setCurrentNumber(square: Square | null, orientation: Orientation) {
+        currentNumber.update((previousValue) => {
+            if (!square || square.isBlack) {
+                return null;
+            }
+
+            const newValue = square[orientation];
+
+            if (previousValue !== newValue) {
+                skipToNextEmptySquare = true;
             }
 
             return newValue;
@@ -57,47 +50,71 @@
         switch (key) {
             case "ArrowUp":
                 event.preventDefault();
+                skipToNextEmptySquare = false;
                 cursor.move($crossword, Direction.Up, true);
+                break;
+
             case "ArrowRight":
                 event.preventDefault();
+                skipToNextEmptySquare = false;
                 cursor.move($crossword, Direction.Right, true);
+                break;
+
             case "ArrowDown":
                 event.preventDefault();
+                skipToNextEmptySquare = false;
                 cursor.move($crossword, Direction.Down, true);
+                break;
+
             case "ArrowLeft":
                 event.preventDefault();
+                skipToNextEmptySquare = false;
                 cursor.move($crossword, Direction.Left, true);
-            case "Backspace":
-                // Allow it to bubble
-                cursor.move($crossword, backward($cursor.orientation), true);
+                break;
         }
     }
 
-    function handleInput() {
-        if (!previousSquare.isBlack) {
+    function handleClearValue(event: CustomEvent<number>) {
+        dispatch("clearValue", event.detail);
+        cursor.move($crossword, backward($cursor.orientation), true);
+    }
+
+    function handleUpdateValue(event: CustomEvent<[number, string]>) {
+        dispatch("updateValue", event.detail);
+        const number = $currentNumber;
+
+        if (
+            !number ||
+            !skipToNextEmptySquare ||
+            $answerStore.completion.isComplete
+        ) {
+            cursor.move($crossword, forward($cursor.orientation), true);
+        } else {
+            cursor.goToNextEmptySquare($answerStore, number);
         }
     }
 
-    function goToNextEmptySquare() {
-        if (currentWord && !currentWord.every((s) => s.value)) {
-        }
+    function handleSelectSquare(event: CustomEvent<number>) {
+        cursor.setIndex($crossword.size, event.detail);
     }
 
     function isHighlighted(square: WhiteSquare) {
-        if ($selectedSquare.isBlack) {
+        if (selectedSquare.isBlack) {
             return false;
         }
         return (
-            $selectedSquare[$cursor.orientation] === square[$cursor.orientation]
+            selectedSquare[$cursor.orientation] === square[$cursor.orientation]
         );
     }
 
+    const dispatch = createEventDispatcher<{
+        updateValue: [index: number, value: string];
+        clearValue: number;
+    }>();
+
     onMount(() => {
         window.addEventListener("keydown", handleKeydown);
-
-        return () => {
-            window.removeEventListener("keydown", handleKeydown);
-        };
+        return () => window.removeEventListener("keydown", handleKeydown);
     });
 </script>
 
@@ -105,7 +122,9 @@
     {#each $crossword.grid as square, index}
         {#key $cursor}
             <InputGridSquare
-                on:input={handleInput}
+                on:selectSquare={handleSelectSquare}
+                on:updateValue={handleUpdateValue}
+                on:clearValue={handleClearValue}
                 square={square.isBlack ? null : square}
                 selected={index === $cursor.index}
                 highlighted={!square.isBlack && isHighlighted(square)}

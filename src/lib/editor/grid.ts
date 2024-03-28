@@ -13,7 +13,7 @@ function numberWord(grid: Square[], size: number, orientation: "across" | "down"
     let i = index + increment;
 
     while (
-        grid[i] 
+        grid[i]
         && !grid[i].isBlack
         && !isNewLine(i, size)
     ) {
@@ -26,7 +26,7 @@ export function numberSquares(crossword: Crossword): Crossword {
     if (!crossword.grid.length) {
         return crossword;
     }
-    
+
     const grid = [...crossword.grid];
     const { size } = crossword;
     let number = 1;
@@ -44,13 +44,13 @@ export function numberSquares(crossword: Crossword): Crossword {
         let increment = false;
 
         if (
-            isNewRow(i, size) 
+            isNewRow(i, size)
             || left?.isBlack
         ) {
             increment = true;
             numberWord(grid, size, "across", i, number);
-        } 
-        
+        }
+
         if (
             isNewColumn(i, size)
             || up?.isBlack
@@ -62,6 +62,8 @@ export function numberSquares(crossword: Crossword): Crossword {
         if (increment) {
             (grid[i] as WhiteSquare).number = number;
             number++
+        } else {
+            (grid[i] as WhiteSquare).number = 0;
         }
     }
 
@@ -72,7 +74,7 @@ export function numberSquares(crossword: Crossword): Crossword {
 }
 
 export function whiteSquare(): WhiteSquare {
-    return { 
+    return {
         isBlack: false,
         index: 0,
         value: "",
@@ -90,13 +92,13 @@ export function blackSquare(): BlackSquare {
     }
 }
 
-export function newGrid(size: number): Square[] { 
-    return new Array(size ** 2).fill(null).map(() => whiteSquare()); 
+export function newGrid(size: number): Square[] {
+    return new Array(size ** 2).fill(null).map(() => whiteSquare());
 }
 
 export function isNewRow(index: number, size: number): boolean {
     return index % size === 0;
-} 
+}
 
 export function isNewColumn(index: number, size: number) {
     return index < size

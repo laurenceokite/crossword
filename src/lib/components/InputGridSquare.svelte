@@ -10,76 +10,104 @@
 
     let inputElement: HTMLInputElement | null = null;
 
-    const dispatch = createEventDispatcher<{ 
-        select: number
+    const dispatch = createEventDispatcher<{
+        selectSquare: number;
+        updateValue: [index: number, value: string];
+        clearValue: number;
     }>();
+
+    $: if (disabled && selected && inputElement) {
+        inputElement.blur();
+    }
 
     $: if (!disabled && selected && inputElement) {
         inputElement.focus();
     }
+
+    function handleInput(event: Event) {
+        const el = event.target as HTMLInputElement;
+
+        el.value = el.value.trim();
+
+        if (el.value.length > 1) {
+            el.value = el.value.split("").pop() ?? el.value;
+        }
+
+        el.value = el.value.toLocaleUpperCase();
+
+        dispatch("updateValue", [index, el.value]);
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        switch (event.key) {
+            case "Backspace":
+                event.preventDefault();
+                dispatch("clearValue", index);
+                break;
+        }
+    }
 </script>
 
-
-<div
-    class="input-grid-square__container"
-    class:highlighted={highlighted}
-    class:is-black={!square}
-> 
+<div class="input-grid-square" class:highlighted class:black={square === null}>
     {#if square}
+        {#if square.number}
             <div class="input-grid-square__number">
-                { square.number }
-            </div>                    
-            <input
-                on:click={() => dispatch("select", index)}
-                bind:value={square.value}
-                bind:this={inputElement}
-                data-index={index}
-                type="text" 
-                class="input-grid__input"                         
-                maxlength="6"
-                {disabled}
-            />
+                {square.number}
+            </div>
+        {/if}
+        <input
+            on:click={() => dispatch("selectSquare", index)}
+            on:input={handleInput}
+            on:keydown={handleKeydown}
+            value={square.value}
+            bind:this={inputElement}
+            data-index={index}
+            type="text"
+            class="input-grid-square__input"
+            maxlength="6"
+            {disabled}
+            class:selected
+        />
     {/if}
 </div>
 
 <style lang="less">
-.input-grid-square {
-    &__container {
+    .input-grid-square {
         position: relative;
         max-width: 5rem;
         min-width: var(--min-sq-size);
-        outline: 1px solid var(--deep-grey);
-    }
+        outline: 1px solid grey;
 
-    & .highlighted {
-        background-color: var(--light-blue); 
-    }
+        &.highlighted {
+            background-color: lightblue;
+        }
 
-    & .is-black {
-        background-color: black;
-    }
+        &.black {
+            background-color: black;
+        }
 
-    &__input {        
-        background-color: transparent;
-        text-align: center;
-        font-size: 1.25rem;
-        font-weight: 500;
-        width: 100%;
-        height: 100%;
-        border: none;
+        &__input {
+            background-color: transparent;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 500;
+            width: 100%;
+            height: 100%;
+            border: none;
 
-        &:focus {
-            background-color: var(--light-yellow);
-            outline: none;
-            caret-color: transparent;
+            &.selected {
+                background-color: yellow;
+                outline: none;
+                caret-color: transparent;
+            }
+        }
+
+        &__number {
+            position: absolute;
+            right: 10%;
+            top: 5%;
+            font-size: 0.8rem;
         }
     }
-
-    &__number {
-        position: absolute;
-        right: 10%;
-        top: 5%;
-        font-size: .8rem;
-    }
-}
 </style>
+

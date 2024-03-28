@@ -1,9 +1,9 @@
 import { derived, type Readable } from "svelte/store";
 import type { Crossword, WhiteSquare } from "../crossword";
-import type { CrosswordCompletionMap, CrosswordMap, WordStore } from "./types";
-import type { Direction, Orientation } from "../cursor";
+import type { CrosswordCompletion, AnswerStore } from "./types";
+import { Orientation } from "../cursor";
 
-export function createWordStore(crosswordStore: Readable<Crossword>): WordStore {
+export function createAnswerStore(crosswordStore: Readable<Crossword>): AnswerStore {
     return derived(crosswordStore, $crossword => {
         const { grid } = $crossword;
         const across = new Map<number, WhiteSquare[]>();
@@ -35,6 +35,11 @@ export function createWordStore(crosswordStore: Readable<Crossword>): WordStore 
         };
 
         across.forEach((squares, number) => {
+            setCompletionEntry(completion, Orientation.Across, number, squares);
+        });
+
+        down.forEach((squares, number) => {
+            setCompletionEntry(completion, Orientation.Down, number, squares);
         });
 
         return {
@@ -45,11 +50,12 @@ export function createWordStore(crosswordStore: Readable<Crossword>): WordStore 
     })
 };
 
-function setCompletionEntry(map: CrosswordCompletionMap, orientation: Orientation, number: number, squares: WhiteSquare[]) {
+function setCompletionEntry(completion: CrosswordCompletion, orientation: Orientation, number: number, squares: WhiteSquare[]) {
     const isComplete = squares.every(s => s.value);
 
     if (completion.isComplete && !isComplete) {
         completion.isComplete = false;
     }
 
-    map[orientation].set(number, isComplete);
+    completion[orientation].set(number, isComplete);
+}

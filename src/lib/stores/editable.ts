@@ -1,10 +1,9 @@
-import { derived, writable } from "svelte/store";
+import { writable } from "svelte/store";
 import type { Crossword } from "../crossword";
 import { CommandExecutionResultType, type EditorCommand } from "../editor/command";
 import type { EditableCrossword } from "../editor/types";
 import { newGrid, numberSquares } from "../editor/grid";
-import type { CrosswordStore } from "./types";
-import { createWordStore } from "./word";
+import { createAnswerStore } from "./answer";
 
 const historyInit = {
     undo: [],
@@ -16,7 +15,7 @@ const { subscribe, set, update } = writable<EditableCrossword>(
         ...numberSquares({
             grid: newGrid(15),
             size: 15
-        }), 
+        }),
         history: historyInit
     }
 );
@@ -46,7 +45,7 @@ function undo() {
             redo.push(command);
 
             if (command.renumber) {
-                editable = { 
+                editable = {
                     ...editable,
                     ...numberSquares(editable),
                 };
@@ -74,7 +73,7 @@ function redo() {
             history: { undo, redo }
         }
     });
-} 
+}
 
 function execute(command: EditorCommand) {
     update(editable => {
@@ -109,5 +108,5 @@ export default {
     undo,
     redo,
     execute,
-    wordStore: createWordStore({subscribe})
+    answerStore: createAnswerStore({ subscribe })
 };

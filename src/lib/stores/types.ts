@@ -1,23 +1,22 @@
 import type { Readable } from "svelte/store";
 import type { Crossword, WhiteSquare } from "../crossword";
-import type { Orientation } from "../cursor";
 
-export type WordMap = Map<number, WhiteSquare[]>;
-export type CrosswordMap = {
-    [K in Orientation]: WordMap;
-} & {
-    completion: CrosswordCompletionMap;
-}
+export type AnswerMap = Map<number, WhiteSquare[]>;
+export interface CrosswordAnswers {
+    across: AnswerMap;
+    down: AnswerMap;
+    completion: CrosswordCompletion;
+};
 
-export type WordStore = Readable<CrosswordMap>;
+export type AnswerStore = Readable<CrosswordAnswers>;
 
-export type WordCompletionMap = Map<number, boolean>;
-export type CrosswordCompletionMap = {
-    [K in Orientation]: WordCompletionMap;
-} & {
+export type AnswerCompletionMap = Map<number, boolean>;
+export interface CrosswordCompletion {
+    across: AnswerCompletionMap;
+    down: AnswerCompletionMap;
     isComplete: boolean;
-}
+};
 
 export interface CrosswordStore extends Readable<Crossword> {
-    wordStore: WordStore;
+    answerStore: AnswerStore;
 };

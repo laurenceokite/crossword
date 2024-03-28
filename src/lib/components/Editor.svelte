@@ -11,28 +11,35 @@
 
     export let init: Crossword | undefined = undefined;
 
-    let cursor: CursorState = {
-        orientation: Orientation.Across,
-        index: 0
-    }
     let editMode = EditMode.Grid;
     const crossword = $editable;
 
-    function handleInput(event: CustomEvent<string>) {
-        const value = event.detail;
-        editable.execute(updateValue(cursor.index, value));
-    };
+    function handleUpdateValue(event: CustomEvent<[number, string]>) {
+        editable.execute(updateValue(...event.detail));
+    }
+
+    function handleClearValue(event: CustomEvent<number>) {
+        editable.execute(updateValue(event.detail, ""));
+    }
 
     function handleToggleSquare(event: CustomEvent<number>) {
-        const index = event.detail;
-        editable.execute(toggleSquare(index));
+        editable.execute(toggleSquare(event.detail));
     }
 
     function toggleGridMode() {
         if (editMode !== EditMode.Grid) {
             editMode = EditMode.Grid;
         } else {
-            editMode = EditMode.Insert
+            editMode = EditMode.Insert;
+        }
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        const { key } = event;
+
+        switch (key) {
+            case "Escape":
+                toggleGridMode();
         }
     }
 
@@ -40,20 +47,22 @@
         if (init) {
             editable.load(init);
         }
-    });
 
+        window.addEventListener("keydown", handleKeydown);
+    });
 </script>
 
 <div class="editor">
     {#if crossword}
         <div class="editor__grid">
             <InputGrid
-                on:input={handleInput}
-                editor={true} 
-                focused={editMode !== EditMode.Insert}
+                on:updateValue={handleUpdateValue}
+                on:clearValue={handleClearValue}
+                editor={true}
+                disabled={editMode !== EditMode.Insert}
             />
             {#if editMode === EditMode.Grid}
-                <GridDesigner />
+                <GridDesigner on:toggleSquare={handleToggleSquare} />
             {/if}
         </div>
     {/if}
@@ -78,3 +87,4 @@
         }
     }
 </style>
+

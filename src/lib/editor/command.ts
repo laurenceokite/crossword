@@ -1,4 +1,4 @@
-import type { Crossword } from "$lib/crossword";
+import type { Crossword } from "../crossword";
 
 export interface EditorCommand {
     readonly type: EditorCommandType;
@@ -8,7 +8,7 @@ export interface EditorCommand {
     undo(crossword: Crossword): Crossword;
 }
 
-export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation; 
+export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation;
 
 export interface CommandExecutionSuccess {
     type: CommandExecutionResultType.Success;
@@ -20,7 +20,7 @@ export interface CommandExecutionNoOperation {
     crossword: Crossword;
 }
 
-export enum CommandExecutionResultType{
+export enum CommandExecutionResultType {
     NoOperation,
     Success
 }

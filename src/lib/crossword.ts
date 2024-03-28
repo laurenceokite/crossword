@@ -3,7 +3,7 @@ export interface Crossword {
     size: number;
 }
 
-export enum SquareDecoration {}
+export enum SquareDecoration { }
 
 export type Square = WhiteSquare | BlackSquare;
 

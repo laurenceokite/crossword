@@ -1,4 +1,4 @@
-import type { Crossword, WhiteSquare, Square } from "$lib/crossword";
+import type { Crossword, WhiteSquare, Square } from "../../crossword";
 import type { EditorCommand } from "../command";
 import { CommandExecutionResultType as ResultType, EditorCommandType } from "../command";
 import { whiteSquare } from "../grid";
@@ -34,7 +34,7 @@ export function resizeGrid(newSize: number): EditorCommand {
                 type: ResultType.NoOperation,
                 crossword
             }
-        } 
+        }
 
         previousState = JSON.stringify(crossword);
 
@@ -55,7 +55,7 @@ export function resizeGrid(newSize: number): EditorCommand {
         crossword.grid = newGrid;
         crossword.size = newSize;
 
-        return { 
+        return {
             type: ResultType.Success,
             crossword
         }

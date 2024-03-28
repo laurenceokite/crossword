@@ -1,4 +1,4 @@
-import type { Crossword, BlackSquare, WhiteSquare, Square } from "$lib/crossword";
+import type { Crossword, Square } from "../../crossword";
 import type { EditorCommand } from "../command";
 import { whiteSquare, blackSquare } from "../grid";
 import { CommandExecutionResultType, EditorCommandType } from "../command";
@@ -18,7 +18,7 @@ export function toggleSquare(index: number): EditorCommand {
         }
 
         previousState = square;
-        grid[index] = square.isBlack 
+        grid[index] = square.isBlack
             ? whiteSquare()
             : blackSquare();
 
