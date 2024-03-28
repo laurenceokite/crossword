@@ -40,6 +40,14 @@
         }
     }
 
+    function handleChange(index: number) {
+        if ($cursor.index !== index) {
+            cursor.setIndex($crossword.size, index);
+        }
+
+        dispatch("toggleSquare", index);
+    }
+
     onMount(() => {
         window.addEventListener("keydown", handleKeydown);
 
@@ -51,33 +59,45 @@
 
 <div class="grid-designer" style="--grid-size: {$crossword.size}">
     {#each $crossword.grid as square, index}
-        <input
-            class="grid-designer__input"
-            type="checkbox"
-            value={square.isBlack}
-            on:change={() => dispatch("toggleSquare", index)}
-            bind:this={inputElements[index]}
-        />
+        {#key $cursor}
+            <div
+                class="grid-designer__square"
+                class:selected={$cursor.index === index}
+            >
+                <input
+                    class="grid-designer__input"
+                    type="checkbox"
+                    value={square.isBlack}
+                    on:change={() => handleChange(index)}
+                    bind:this={inputElements[index]}
+                />
+            </div>
+        {/key}
     {/each}
 </div>
 
 <style lang="less">
     .grid-designer {
-        opacity: 0.5;
         position: absolute;
-        inset: 0;
+        top: 0;
+        left: 0;
         display: grid;
-        grid-template-columns: repeat(var(--grid-size), 1fr);
-        grid-template-rows: repeat(var(--grid-size), 1fr);
+        grid-template-columns: repeat(var(--grid-size), minmax(1rem, 6rem));
+        grid-template-rows: repeat(var(--grid-size), minmax(1rem, 6rem));
         aspect-ratio: 1;
+
+        &__square {
+            &.selected {
+                background-color: grey;
+                opacity: 0.7;
+                z-index: 99;
+            }
+        }
 
         &__input {
             width: 100%;
             height: 100%;
-
-            &:focus {
-                outline: green;
-            }
+            opacity: 0;
         }
     }
 </style>

@@ -126,8 +126,10 @@
                 on:updateValue={handleUpdateValue}
                 on:clearValue={handleClearValue}
                 square={square.isBlack ? null : square}
-                selected={index === $cursor.index}
-                highlighted={!square.isBlack && isHighlighted(square)}
+                selected={!disabled && index === $cursor.index}
+                highlighted={!disabled &&
+                    !square.isBlack &&
+                    isHighlighted(square)}
                 {disabled}
                 {index}
             />
@@ -138,8 +140,8 @@
 <style lang="less">
     .input-grid {
         display: grid;
-        grid-template-columns: repeat(var(--grid-size), 1fr);
-        grid-template-rows: repeat(var(--grid-size), 1fr);
+        grid-template-columns: repeat(var(--grid-size), minmax(1rem, 6rem));
+        grid-template-rows: repeat(var(--grid-size), minmax(1rem, 6rem));
         aspect-ratio: 1;
         grid-gap: 2px;
         width: 100%;

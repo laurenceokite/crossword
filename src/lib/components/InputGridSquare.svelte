@@ -48,7 +48,12 @@
     }
 </script>
 
-<div class="input-grid-square" class:highlighted class:black={square === null}>
+<div
+    class="input-grid-square"
+    class:highlighted
+    class:selected
+    class:black={square === null}
+>
     {#if square}
         {#if square.number}
             <div class="input-grid-square__number">
@@ -66,7 +71,6 @@
             class="input-grid-square__input"
             maxlength="6"
             {disabled}
-            class:selected
         />
     {/if}
 </div>
@@ -74,12 +78,22 @@
 <style lang="less">
     .input-grid-square {
         position: relative;
-        max-width: 5rem;
-        min-width: var(--min-sq-size);
         outline: 1px solid grey;
 
         &.highlighted {
-            background-color: lightblue;
+            &:not(.selected) {
+                background-color: lightblue;
+            }
+        }
+
+        &.selected {
+            &::before {
+                content: " ";
+                position: absolute;
+                inset: 0;
+                opacity: 0.3;
+                background-color: yellow;
+            }
         }
 
         &.black {
@@ -95,8 +109,7 @@
             height: 100%;
             border: none;
 
-            &.selected {
-                background-color: yellow;
+            &:focus {
                 outline: none;
                 caret-color: transparent;
             }
@@ -107,6 +120,7 @@
             right: 10%;
             top: 5%;
             font-size: 0.8rem;
+            z-index: 99;
         }
     }
 </style>

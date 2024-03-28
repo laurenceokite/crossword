@@ -14,17 +14,21 @@ function move(
     skipBlack: boolean = false
 ) {
     cursorStore.update(cursor => {
+        let { orientation } = cursor;
+
         const targetOrientation = direction === Direction.Up || direction === Direction.Down
             ? Orientation.Down
             : Orientation.Across;
 
-        if (
-            cursor.orientation !== targetOrientation
-        ) {
-            return {
-                ...cursor,
-                orientation: targetOrientation
-            };
+        if (orientation !== targetOrientation) {
+            orientation = targetOrientation;
+
+            if (skipBlack) {
+                return {
+                    ...cursor,
+                    orientation: targetOrientation
+                };
+            }
         }
 
         if (
@@ -38,7 +42,10 @@ function move(
         let index = cursor.index + increment;
 
         if (index < 0 || index > ciel) {
-            return cursor;
+            return {
+                ...cursor,
+                orientation
+            };
         }
 
         if (skipBlack && crossword.grid[index].isBlack) {
@@ -51,17 +58,20 @@ function move(
 
                 if (crossword.grid[index] && !crossword.grid[index].isBlack) {
                     return {
-                        ...cursor,
+                        orientation,
                         index
                     }
                 }
             }
 
-            return cursor;
+            return {
+                ...cursor,
+                orientation
+            };
         }
 
         return {
-            ...cursor,
+            orientation,
             index
         };
     });
