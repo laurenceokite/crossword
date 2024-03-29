@@ -52,6 +52,8 @@ function undo() {
             }
         }
 
+        console.log(undo, redo);
+
         return {
             ...editable,
             history: { undo, redo }
@@ -65,7 +67,7 @@ function redo() {
 
         const command = redo.pop();
         if (command) {
-            execute(command);
+            execute(command, false);
         }
 
         return {
@@ -75,17 +77,19 @@ function redo() {
     });
 }
 
-function execute(command: EditorCommand) {
+function execute(command: EditorCommand, clearRedoStack = true) {
     update(editable => {
         const result = command.execute(editable);
         const { undo, redo } = editable.history;
         let { crossword } = result;
 
         if (result.type == CommandExecutionResultType.Success) {
-            redo.length = 0;
+            if (clearRedoStack) {
+                redo.length = 0;
+            }
             undo.push(command);
 
-            while (undo.length > 1000) {
+            while (undo.length > 100) {
                 undo.shift();
             }
 
