@@ -126,10 +126,8 @@
                 on:updateValue={handleUpdateValue}
                 on:clearValue={handleClearValue}
                 square={square.isBlack ? null : square}
-                selected={!disabled && index === $cursor.index}
-                highlighted={!disabled &&
-                    !square.isBlack &&
-                    isHighlighted(square)}
+                selected={index === $cursor.index}
+                highlighted={!square.isBlack && isHighlighted(square)}
                 {disabled}
                 {index}
             />

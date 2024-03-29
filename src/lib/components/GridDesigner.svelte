@@ -63,6 +63,7 @@
             <div
                 class="grid-designer__square"
                 class:selected={$cursor.index === index}
+                class:black={square.isBlack}
             >
                 <input
                     class="grid-designer__input"
@@ -88,9 +89,8 @@
 
         &__square {
             &.selected {
-                background-color: grey;
-                opacity: 0.7;
-                z-index: 99;
+                background-color: lightblue;
+                opacity: 0.5;
             }
         }
 

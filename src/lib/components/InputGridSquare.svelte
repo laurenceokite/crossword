@@ -52,6 +52,7 @@
     class="input-grid-square"
     class:highlighted
     class:selected
+    class:disabled
     class:black={square === null}
 >
     {#if square}
@@ -81,17 +82,20 @@
         outline: 1px solid grey;
 
         &.highlighted {
-            &:not(.selected) {
+            &:not(.selected):not(.disabled) {
                 background-color: lightblue;
             }
         }
 
         &.selected {
-            &::before {
+            border: 3px solid lightblue;
+            outline-color: lightblue;
+
+            &:not(.disabled)::before {
                 content: " ";
                 position: absolute;
                 inset: 0;
-                opacity: 0.3;
+                opacity: 0.2;
                 background-color: yellow;
             }
         }
