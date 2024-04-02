@@ -1,7 +1,8 @@
 import type { Crossword, WhiteSquare } from "../crossword";
 import { Orientation, type CursorState, Direction } from "../cursor";
 import { writable } from "svelte/store";
-import type { CrosswordAnswers } from "./types";
+import type { AnswerMap } from "./types";
+import type { EditableCrossword } from "../editor/types";
 
 const cursorStore = writable<CursorState>({
     index: 0,
@@ -37,7 +38,7 @@ function move(
             return cursor;
         }
 
-        const increment = getIncrement(crossword, direction);
+        const increment = getIncrement(crossword.size, direction);
         const ciel = (crossword.size ** 2) - 1;
         let index = cursor.index + increment;
 
@@ -101,7 +102,7 @@ function setIndex(crosswordSize: number, index: number) {
     });
 }
 
-export function getIncrement(crossword: Crossword, direction: Direction): number {
+export function getIncrement(size: number, direction: Direction): number {
     let increment = 0;
 
     switch (direction) {
@@ -109,10 +110,10 @@ export function getIncrement(crossword: Crossword, direction: Direction): number
             increment = -1;
             break;
         case Direction.Up:
-            increment = -(crossword.size);
+            increment = -(size);
             break;
         case Direction.Down:
-            increment = crossword.size;
+            increment = size;
             break;
         case Direction.Right:
             increment = 1;
@@ -121,85 +122,94 @@ export function getIncrement(crossword: Crossword, direction: Direction): number
     return increment;
 }
 
-function goToNextEmptySquare(answers: CrosswordAnswers, currentNumber: number) {
+function goToNextEmptySquare(crossword: EditableCrossword) {
     cursorStore.update(cursor => {
-        if (answers.completion.isComplete) {
+        let index = cursor.index;
+        const { grid } = crossword;
+        const square = grid[index];
+
+        if (square.isBlack) {
             return cursor;
         }
 
-        if (
-            answers.completion[cursor.orientation].has(currentNumber)
-            && !answers.completion[cursor.orientation].get(currentNumber)
-        ) {
+        const number = square[cursor.orientation];
+        const increment = cursor.orientation === Orientation.Down ? crossword.size : 1;
 
-            const answer = answers[cursor.orientation].get(currentNumber)!;
-            let currentIndex = answer.findIndex(s => s.index === cursor.index);
-            if (currentIndex === -1) {
-                const index = answer.find(s => !s.value)?.index ?? cursor.index;
-
+        index += increment;
+        while (grid[index] && !grid[index].isBlack && (grid[index] as WhiteSquare)[cursor.orientation] === number) {
+            if (!(grid[index] as WhiteSquare).value) {
                 return {
                     ...cursor,
                     index
                 }
             }
+            index += increment;
+        }
 
-            for (let i = 0; i < answer.length - 1; i++) {
-                if (currentIndex >= answer.length) {
-                    currentIndex = 0;
-                }
+        const word = crossword.answerMap[cursor.orientation].get(number);
+        const start = word ? word[0] : null;
 
-                if (answer[currentIndex] && !answer[currentIndex].value) {
-                    const { index } = answer[currentIndex];
+        if (start !== null && start !== cursor.index) {
+            index = start;
+
+            while (grid[index] && !grid[index].isBlack && index < cursor.index) {
+                if (!(grid[index] as WhiteSquare)) {
                     return {
                         ...cursor,
                         index
                     }
                 }
-
-                currentIndex++;
+                index += increment;
             }
         }
 
-        const answerIter = answers.completion[cursor.orientation].entries();
-
-        while (answerIter.next().value[0] !== currentNumber);
-
-        function getEmptySquareIndex(answer: WhiteSquare[]) {
-            const emptySquare = answer.find(s => !s.value);
-
-            if (emptySquare) {
-                return emptySquare.index;
-            } else {
-                return null;
-            }
-        }
-
-        for (const [number, isComplete] of answerIter) {
-            if (!isComplete && answers[cursor.orientation].has(number)) {
-                const index = getEmptySquareIndex(answers[cursor.orientation].get(number)!);
-
-                if (index !== null) {
+        if (cursor.orientation === Orientation.Across) {
+            for (index; index < grid.length; index++) {
+                if (grid[index] && !grid[index].isBlack && !(grid[index] as WhiteSquare).value) {
                     return {
                         ...cursor,
                         index
                     }
                 }
             }
-        }
 
-        for (const [number, isComplete] of answers.completion[cursor.orientation].entries()) {
-            if (number === currentNumber) {
-                break;
-            }
-
-            if (!isComplete && answers[cursor.orientation].has(number)) {
-                const index = getEmptySquareIndex(answers[cursor.orientation].get(number)!);
-
-                if (index !== null) {
+            for (index = 0; index < cursor.index; index++) {
+                if (grid[index] && !grid[index].isBlack && !(grid[index] as WhiteSquare).value) {
                     return {
                         ...cursor,
                         index
                     }
+                }
+            }
+
+            return cursor;
+        }
+
+        let answerIter = crossword.answerMap.down.entries();
+
+        console.log(crossword.answerMap.down);
+
+        while (answerIter.next().value[0] !== number);
+
+        let answer: [number, number[]] | undefined = answerIter.next().value;
+
+        while (answer) {
+            answer[1].forEach(i => {
+                if (grid[i] && !grid[i].isBlack && !(grid[i] as WhiteSquare).value) {
+                    return {
+                        ...cursor,
+                        index: i
+                    }
+                }
+            })
+            answer = answerIter.next().value;
+        }
+
+        for (index = 0; index < cursor.index; index++) {
+            if (grid[index] && !grid[index].isBlack && !(grid[index] as WhiteSquare).value) {
+                return {
+                    ...cursor,
+                    index
                 }
             }
         }

@@ -11,7 +11,6 @@
     export let editor: boolean = false;
 
     const crossword = editor ? editable : editable;
-    const answerStore = crossword.answerStore;
 
     $: selectedSquare = $crossword.grid[$cursor.index];
 
@@ -83,14 +82,10 @@
         dispatch("updateValue", event.detail);
         const number = $currentNumber;
 
-        if (
-            !number ||
-            !skipToNextEmptySquare ||
-            $answerStore.completion.isComplete
-        ) {
+        if (!number || !skipToNextEmptySquare) {
             cursor.move($crossword, forward($cursor.orientation), true);
         } else {
-            cursor.goToNextEmptySquare($answerStore, number);
+            cursor.goToNextEmptySquare($crossword);
         }
     }
 
@@ -118,7 +113,11 @@
     });
 </script>
 
-<div class="input-grid" style="--grid-size: {$crossword.size}" role="group">
+<div
+    class="input-grid aspect-square w-max h-max relative"
+    style="--grid-size: {$crossword.size}"
+    role="group"
+>
     {#each $crossword.grid as square, index}
         {#key $cursor}
             <InputGridSquare
@@ -133,17 +132,13 @@
             />
         {/key}
     {/each}
+    <slot />
 </div>
 
 <style lang="less">
     .input-grid {
         display: grid;
-        grid-template-columns: repeat(var(--grid-size), minmax(1rem, 6rem));
-        grid-template-rows: repeat(var(--grid-size), minmax(1rem, 6rem));
-        aspect-ratio: 1;
-        grid-gap: 2px;
-        width: 100%;
-        border: 3px solid var(--deep-grey);
-        border-radius: 5px;
+        grid-template-columns: repeat(var(--grid-size), minmax(1rem, 3rem));
+        grid-template-rows: repeat(var(--grid-size), minmax(1rem, 3rem));
     }
 </style>

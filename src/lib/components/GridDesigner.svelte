@@ -82,9 +82,11 @@
         position: absolute;
         top: 0;
         left: 0;
+        bottom: 0;
+        right: 0;
         display: grid;
-        grid-template-columns: repeat(var(--grid-size), minmax(1rem, 6rem));
-        grid-template-rows: repeat(var(--grid-size), minmax(1rem, 6rem));
+        grid-template-columns: repeat(var(--grid-size), 1fr);
+        grid-template-rows: repeat(var(--grid-size), 1fr);
         aspect-ratio: 1;
 
         &__square {
@@ -101,4 +103,3 @@
         }
     }
 </style>
-

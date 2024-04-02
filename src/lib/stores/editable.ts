@@ -3,22 +3,28 @@ import type { Crossword } from "../crossword";
 import { CommandExecutionResultType, type EditorCommand } from "../editor/command";
 import type { EditableCrossword } from "../editor/types";
 import { newGrid, numberSquares } from "../editor/grid";
-import { createAnswerStore } from "./answer";
+import { createAnswerMap } from "./answer";
 
-const historyInit = {
-    undo: [],
-    redo: []
-}
+const { subscribe, set, update } = writable<EditableCrossword>(newEditable());
 
-const { subscribe, set, update } = writable<EditableCrossword>(
-    {
-        ...numberSquares({
-            grid: newGrid(15),
-            size: 15
-        }),
-        history: historyInit
+function newEditable() {
+    const grid = newGrid(15);
+    const crossword = numberSquares({
+        size: 15,
+        grid
+    });
+    const answerMap = createAnswerMap(crossword.grid);
+    const history = {
+        undo: [],
+        redo: []
+    };
+
+    return {
+        ...crossword,
+        answerMap,
+        history
     }
-);
+}
 
 function load(crossword: Crossword) {
     if (!crossword.size) {
@@ -27,7 +33,11 @@ function load(crossword: Crossword) {
 
     set({
         ...crossword,
-        history: historyInit
+        history: {
+            undo: [],
+            redo: []
+        },
+        answerMap: createAnswerMap(crossword.grid)
     })
 }
 
@@ -52,11 +62,10 @@ function undo() {
             }
         }
 
-        console.log(undo, redo);
-
         return {
             ...editable,
-            history: { undo, redo }
+            history: { undo, redo },
+            answerMap: createAnswerMap(editable.grid),
         }
     });
 }
@@ -82,6 +91,7 @@ function execute(command: EditorCommand, clearRedoStack = true) {
         const result = command.execute(editable);
         const { undo, redo } = editable.history;
         let { crossword } = result;
+        let { answerMap } = editable;
 
         if (result.type == CommandExecutionResultType.Success) {
             if (clearRedoStack) {
@@ -95,12 +105,14 @@ function execute(command: EditorCommand, clearRedoStack = true) {
 
             if (command.renumber) {
                 crossword = numberSquares(crossword);
+                answerMap = createAnswerMap(crossword.grid);
             }
         }
 
         return {
             ...editable,
             ...crossword,
+            ...answerMap,
             history: { undo, redo }
         }
     })
@@ -111,6 +123,5 @@ export default {
     load,
     undo,
     redo,
-    execute,
-    answerStore: createAnswerStore({ subscribe })
+    execute
 };

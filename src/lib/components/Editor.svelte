@@ -76,7 +76,7 @@
 
 <div class="editor">
     {#if crossword}
-        <div>
+        <div class="editor__control">
             <label for="crosswordSizeInput">size: </label>
             <input
                 id="crosswordSizeInput"
@@ -128,31 +128,39 @@
                 on:clearValue={handleClearValue}
                 editor={true}
                 disabled={editMode !== EditMode.Insert}
-            />
-            {#if editMode === EditMode.Grid}
-                <GridDesigner on:toggleSquare={handleToggleSquare} />
-            {/if}
+            >
+                {#if editMode === EditMode.Grid}
+                    <GridDesigner on:toggleSquare={handleToggleSquare} />
+                {/if}
+            </InputGrid>
         </div>
     {/if}
 </div>
 
 <style lang="less">
     :root {
-        --grid-dimension: 90vw;
+        --grid-dimension: 100vw;
     }
 
     @media (min-aspect-ratio: 1/1) {
         :root {
-            --grid-dimension: 90vh;
+            --grid-dimension: 70vh;
         }
     }
     .editor {
         &__grid {
-            position: relative;
-            height: var(--grid-dimension);
+            display: flex;
             width: var(--grid-dimension);
-            max-width: 1200px;
+            height: var(--grid-dimension);
+            align-items: center;
+            justify-content: center;
+        }
+        &__control {
+            display: flex;
+            padding: 10px;
         }
     }
-</style>
 
+    .editor {
+    }
+</style>

@@ -21,6 +21,7 @@
     }
 
     $: if (!disabled && selected && inputElement) {
+        console.log(inputElement);
         inputElement.focus();
     }
 
@@ -49,11 +50,11 @@
 </script>
 
 <div
-    class="input-grid-square"
-    class:highlighted
-    class:selected
-    class:disabled
-    class:black={square === null}
+    class="relative border border-1 border-gray-500"
+    class:bg-blue-100={highlighted}
+    class:bg-slate-50={disabled}
+    class:bg-yellow-200={selected}
+    class:bg-gray-950={square === null}
 >
     {#if square}
         {#if square.number}
@@ -67,11 +68,10 @@
             on:keydown={handleKeydown}
             value={square.value}
             bind:this={inputElement}
-            data-index={index}
             type="text"
-            class="input-grid-square__input"
             maxlength="6"
             {disabled}
+            class="bg-transparent text-center font-semibold w-full h-full focus:ring-2 ring-inset"
         />
     {/if}
 </div>
@@ -107,7 +107,7 @@
         &__input {
             background-color: transparent;
             text-align: center;
-            font-size: 1.25rem;
+            font-size: 1rem;
             font-weight: 500;
             width: 100%;
             height: 100%;
@@ -121,11 +121,11 @@
 
         &__number {
             position: absolute;
-            right: 10%;
-            top: 5%;
-            font-size: 0.8rem;
+            left: 3%;
+            top: 2%;
+            font-size: 0.6rem;
+            line-height: 1;
             z-index: 99;
         }
     }
 </style>
-
