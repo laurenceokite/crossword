@@ -14,7 +14,7 @@ export function resizeGrid(newSize: number): EditorCommand {
         const { size, grid } = crossword;
         const targetLength = newSize ** 2;
 
-        if (newSize < 3 || newSize > 1000) {
+        if (newSize < 3 || newSize > 30) {
             return {
                 type: ResultType.NoOperation,
                 crossword

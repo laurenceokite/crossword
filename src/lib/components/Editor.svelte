@@ -8,17 +8,18 @@
     import { onMount } from "svelte";
     import { toggleSquare } from "../editor/commands/toggle-square";
     import { resizeGrid } from "../editor/commands/resize";
+    import NumberInput from "./form/NumberInput.svelte";
+    import type { FormChild } from "./form/validation";
 
     export let init: Crossword | undefined = undefined;
 
-    const MAX_GRID_SIZE = 50;
+    const MAX_GRID_SIZE = 30;
     const MIN_GRID_SIZE = 3;
 
     const crossword = $editable;
     let size = crossword.size;
     let editMode = EditMode.Grid;
-
-    $: resize(size);
+    let validateSize: FormChild["validate"];
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         editable.execute(updateValue(...event.detail));
@@ -41,13 +42,14 @@
     }
 
     function resize(newSize: number) {
-        if (newSize > MAX_GRID_SIZE) {
-            size = MAX_GRID_SIZE;
-            return;
-        }
+        if (!newSize)
+            if (newSize > MAX_GRID_SIZE) {
+                size = MAX_GRID_SIZE;
+                return;
+            }
 
         if (newSize < MIN_GRID_SIZE) {
-            size = 3;
+            size = MIN_GRID_SIZE;
             return;
         }
 
@@ -69,75 +71,61 @@
         if (init) {
             editable.load(init);
         }
-
         window.addEventListener("keydown", handleKeydown);
     });
 </script>
 
-<div class="editor">
-    {#if crossword}
-        <div class="editor__control">
-            <label for="crosswordSizeInput">size: </label>
-            <input
-                id="crosswordSizeInput"
-                type="number"
-                min={MIN_GRID_SIZE}
-                max={MAX_GRID_SIZE}
-                bind:value={size}
-            />
+<div class="">
+    <fieldset id="editorModeRadioGroup">
+        <legend>Editor Mode [Esc]</legend>
+        <label for="gridModeRadioButton">Grid</label>
+        <input
+            type="radio"
+            id="gridModeRadioButton"
+            bind:group={editMode}
+            value={EditMode.Grid}
+        />
 
-            <fieldset id="editorModeRadioGroup">
-                <legend>Editor Mode [Esc]</legend>
-                <label for="gridModeRadioButton">Grid</label>
-                <input
-                    type="radio"
-                    id="gridModeRadioButton"
-                    bind:group={editMode}
-                    value={EditMode.Grid}
-                />
+        <label for="insertModeRadioButton">Insert</label>
+        <input
+            type="radio"
+            id="insertModeRadioButton"
+            bind:group={editMode}
+            value={EditMode.Insert}
+        />
+    </fieldset>
+    {#key $editable.history}
+        <button
+            type="button"
+            on:click={() => editable.undo()}
+            disabled={!crossword.history.undo.length}
+        >
+            Undo
+        </button>
 
-                <label for="insertModeRadioButton">Insert</label>
-                <input
-                    type="radio"
-                    id="insertModeRadioButton"
-                    bind:group={editMode}
-                    value={EditMode.Insert}
-                />
-            </fieldset>
-            {#key $editable.history}
-                <button
-                    type="button"
-                    on:click={() => editable.undo()}
-                    disabled={!crossword.history.undo.length}
-                >
-                    Undo
-                </button>
-
-                <button
-                    type="button"
-                    on:click={() => editable.redo()}
-                    disabled={!crossword.history.redo.length}
-                >
-                    Redo
-                </button>
-            {/key}
-        </div>
-        <div class="editor__grid">
-            <InputGrid
-                on:updateValue={handleUpdateValue}
-                on:clearValue={handleClearValue}
-                editor={true}
-                disabled={editMode !== EditMode.Insert}
-            >
-                {#if editMode === EditMode.Grid}
-                    <GridDesigner on:toggleSquare={handleToggleSquare} />
-                {/if}
-            </InputGrid>
-        </div>
-    {/if}
+        <button
+            type="button"
+            on:click={() => editable.redo()}
+            disabled={!crossword.history.redo.length}
+        >
+            Redo
+        </button>
+    {/key}
+</div>
+<div class="editor-grid flex items-center justify-center">
+    <InputGrid
+        on:updateValue={handleUpdateValue}
+        on:clearValue={handleClearValue}
+        editor={true}
+        disabled={editMode !== EditMode.Insert}
+    >
+        {#if editMode === EditMode.Grid}
+            <GridDesigner on:toggleSquare={handleToggleSquare} />
+        {/if}
+    </InputGrid>
 </div>
 
-<style lang="less">
+<style>
     :root {
         --grid-dimension: 100vw;
     }
@@ -147,20 +135,8 @@
             --grid-dimension: 70vh;
         }
     }
-    .editor {
-        &__grid {
-            display: flex;
-            width: var(--grid-dimension);
-            height: var(--grid-dimension);
-            align-items: center;
-            justify-content: center;
-        }
-        &__control {
-            display: flex;
-            padding: 10px;
-        }
-    }
-
-    .editor {
+    .editor-grid {
+        width: var(--grid-dimension);
+        height: var(--grid-dimension);
     }
 </style>

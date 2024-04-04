@@ -57,16 +57,15 @@
     });
 </script>
 
-<div class="grid-designer" style="--grid-size: {$crossword.size}">
+<div
+    class="grid-designer grid absolute inset-0 aspect-square"
+    style="--grid-size: {$crossword.size}"
+>
     {#each $crossword.grid as square, index}
         {#key $cursor}
-            <div
-                class="grid-designer__square"
-                class:selected={$cursor.index === index}
-                class:black={square.isBlack}
-            >
+            <div class:ring-4={$cursor.index === index}>
                 <input
-                    class="grid-designer__input"
+                    class="w-full h-full opacity-0"
                     type="checkbox"
                     value={square.isBlack}
                     on:change={() => handleChange(index)}
@@ -79,15 +78,8 @@
 
 <style lang="less">
     .grid-designer {
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        display: grid;
         grid-template-columns: repeat(var(--grid-size), 1fr);
         grid-template-rows: repeat(var(--grid-size), 1fr);
-        aspect-ratio: 1;
 
         &__square {
             &.selected {

@@ -114,7 +114,7 @@
 </script>
 
 <div
-    class="input-grid aspect-square w-max h-max relative"
+    class="input-grid grid aspect-square w-max h-max relative border-2 border-gray-950"
     style="--grid-size: {$crossword.size}"
     role="group"
 >
@@ -135,9 +135,8 @@
     <slot />
 </div>
 
-<style lang="less">
+<style>
     .input-grid {
-        display: grid;
         grid-template-columns: repeat(var(--grid-size), minmax(1rem, 3rem));
         grid-template-rows: repeat(var(--grid-size), minmax(1rem, 3rem));
     }
