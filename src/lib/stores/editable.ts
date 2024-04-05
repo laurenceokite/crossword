@@ -4,15 +4,27 @@ import { CommandExecutionResultType, type EditorCommand } from "../editor/comman
 import type { EditableCrossword } from "../editor/types";
 import { newGrid, numberSquares } from "../editor/grid";
 import { createAnswerMap } from "./answer";
+import { Orientation } from "../cursor";
 
 const { subscribe, set, update } = writable<EditableCrossword>(newEditable());
 
 function newEditable() {
     const grid = newGrid(15);
-    const crossword = numberSquares({
+    const metadata = {
         size: 15,
-        grid
+    };
+
+    const clues = {
+        [Orientation.Across]: new Map(),
+        [Orientation.Down]: new Map(),
+    };
+
+    const crossword = numberSquares({
+        grid,
+        metadata,
+        clues
     });
+
     const answerMap = createAnswerMap(crossword.grid);
     const history = {
         undo: [],
