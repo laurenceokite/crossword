@@ -1,21 +1,20 @@
 import type { Crossword } from "../crossword";
 
 export interface EditorCommand {
-    readonly type: EditorCommandType;
-    readonly displayName: string;
-    readonly renumber: boolean;
-    execute(crossword: Crossword): CommandExecutionResult;
-    undo(crossword: Crossword): Crossword;
+    displayName: () => string;
+    commandType: () => EditorCommandType;
+    execute: (crossword: Crossword) => CommandExecutionResult;
 }
 
 export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation;
 
-export interface CommandExecutionSuccess {
+export type CommandExecutionSuccess = {
     type: CommandExecutionResultType.Success;
     crossword: Crossword;
+    undo: EditorCommand;
 }
 
-export interface CommandExecutionNoOperation {
+export type CommandExecutionNoOperation = {
     type: CommandExecutionResultType.NoOperation;
     crossword: Crossword;
 }
@@ -28,5 +27,6 @@ export enum CommandExecutionResultType {
 export enum EditorCommandType {
     ResizeGrid,
     ToggleSquare,
-    UpdateValue,
-};
+    UpdateValue
+}
+

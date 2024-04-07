@@ -1,15 +1,16 @@
-import type { EditorCommand } from "../command";
-import type { Square, WhiteSquare } from "../../crossword";
+import type { CommandExecutionResult, EditorCommand } from "../command";
+import type { Grid, Square, WhiteSquare } from "../../crossword";
 import { CommandExecutionResultType, EditorCommandType } from "../command";
 import type { Crossword } from "../../crossword";
+import { undo } from "./undo";
 
 export function updateValue(index: number, value: string): EditorCommand {
-    let previousState: Square | null = null;
+    function execute(crossword: Crossword): CommandExecutionResult {
+        const square = crossword.grid[index] ?? null;
 
-    function execute(crossword: Crossword) {
         if (
-            !crossword.grid[index]
-            || crossword.grid[index].isBlack
+            !square
+            || square.isBlack
         ) {
             return {
                 type: CommandExecutionResultType.NoOperation,
@@ -17,44 +18,41 @@ export function updateValue(index: number, value: string): EditorCommand {
             }
         }
 
-        const grid = [...crossword.grid];
-        const square = grid[index] as WhiteSquare;
-        value = value.toUpperCase();
-
-        previousState = square;
-        grid[index] = {
+        const previousState = square;
+        const newSquare = {
             ...square,
-            value,
+            value: value.toUpperCase(),
             rebus: value.length > 1
         }
+
+        const grid = crossword.grid.map((sq, i) => i === index ? newSquare : sq);
 
         return {
             type: CommandExecutionResultType.Success,
             crossword: {
                 ...crossword,
                 grid
-            }
-        }
-    }
-
-    function undo(crossword: Crossword) {
-        const grid = [...crossword.grid];
-
-        if (previousState) {
-            grid[index] = previousState;
-        }
-
-        return {
-            ...crossword,
-            grid
+            },
+            undo: undo(
+                updateValue(index, value),
+                (crossword: Crossword) => {
+                    return {
+                        type: CommandExecutionResultType.Success,
+                        crossword: {
+                            ...crossword,
+                            grid: crossword.grid.map((sq, i) => i === index ? previousState : sq)
+                        },
+                        undo: updateValue(index, value)
+                    }
+                }
+            )
         }
     }
 
     return {
-        type: EditorCommandType.UpdateValue,
-        displayName: "update value",
-        renumber: false,
-        execute,
-        undo
+        commandType: () => EditorCommandType.UpdateValue,
+        displayName: () => "update value",
+        execute
     }
 }
+

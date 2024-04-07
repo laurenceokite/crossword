@@ -42,7 +42,7 @@
 
     function handleChange(index: number) {
         if ($cursor.index !== index) {
-            cursor.setIndex($crossword.size, index);
+            cursor.setIndex($crossword.metadata.size, index);
         }
 
         dispatch("toggleSquare", index);
@@ -59,7 +59,7 @@
 
 <div
     class="grid-designer grid absolute inset-0 aspect-square"
-    style="--grid-size: {$crossword.size}"
+    style="--grid-size: {$crossword.metadata.size}"
 >
     {#each $crossword.grid as square, index}
         {#key $cursor}

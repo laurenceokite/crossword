@@ -90,7 +90,7 @@
     }
 
     function handleSelectSquare(event: CustomEvent<number>) {
-        cursor.setIndex($crossword.size, event.detail);
+        cursor.setIndex($crossword.metadata.size, event.detail);
     }
 
     function isHighlighted(square: WhiteSquare) {
@@ -115,7 +115,7 @@
 
 <div
     class="input-grid grid aspect-square w-max h-max relative border-2 border-gray-950"
-    style="--grid-size: {$crossword.size}"
+    style="--grid-size: {$crossword.metadata.size}"
     role="group"
 >
     {#each $crossword.grid as square, index}

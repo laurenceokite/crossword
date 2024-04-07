@@ -1,20 +1,23 @@
+import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../../constants";
 import type { Crossword, WhiteSquare, Square } from "../../crossword";
-import type { EditorCommand } from "../command";
-import { CommandExecutionResultType as ResultType, EditorCommandType } from "../command";
-import { whiteSquare } from "../grid";
+import type { CommandExecutionResult, EditorCommand } from "../command";
+import { EditorCommandType, CommandExecutionResultType as ResultType } from "../command";
+import { newGrid, numberSquares, whiteSquare } from "../grid";
+import { undo } from "./undo";
 
-export function resizeGrid(newSize: number): EditorCommand {
-    let previousState: string | null = null;
+export function resizeGrid(size: number): EditorCommand {
+    function execute(crossword: Crossword): CommandExecutionResult {
+        const previousSize = crossword.metadata.size;
+        const targetLength = size ** 2;
 
-    function newRow(length: number) {
-        return new Array(length).fill(null).map(() => whiteSquare());
-    }
+        if (size < MIN_GRID_SIZE || size > MAX_GRID_SIZE) {
+            return {
+                type: ResultType.NoOperation,
+                crossword
+            }
+        }
 
-    function execute(crossword: Crossword) {
-        const { size, grid } = crossword;
-        const targetLength = newSize ** 2;
-
-        if (newSize < 3 || newSize > 30) {
+        if (size === previousSize && crossword.grid.length === targetLength) {
             return {
                 type: ResultType.NoOperation,
                 crossword
@@ -22,59 +25,67 @@ export function resizeGrid(newSize: number): EditorCommand {
         }
 
         if (!crossword.grid.length) {
-            crossword.grid = newRow(targetLength);
+            const grid = numberSquares(newGrid(targetLength), size);
             return {
                 type: ResultType.NoOperation,
-                crossword
-            }
-        }
-
-        if (newSize == size && crossword.grid.length == targetLength) {
-            return {
-                type: ResultType.NoOperation,
-                crossword
-            }
-        }
-
-        previousState = JSON.stringify(crossword);
-
-        const newGrid: Square[] = newRow(targetLength);
-        const minSize = Math.min(size, newSize);
-
-        for (let i = 0; i < minSize; i++) {
-            for (let j = 0; j < minSize; j++) {
-                const sourceIndex = i * size + j;
-                const targetIndex = i * newSize + j;
-
-                if (sourceIndex < grid.length) {
-                    newGrid[targetIndex] = grid[sourceIndex];
+                crossword: {
+                    ...crossword,
+                    grid
                 }
             }
         }
 
-        crossword.grid = newGrid;
-        crossword.size = newSize;
+        const metadata = {
+            ...crossword.metadata,
+            size
+        }
+        const previousState = JSON.stringify(crossword);
+
+        const accumulator: Square[] = [];
+        const minSize = Math.min(previousSize, size);
+
+        for (let i = 0; i < minSize; i++) {
+            for (let j = 0; j < minSize; j++) {
+                const sourceIndex = i * previousSize + j;
+                const targetIndex = i * size + j;
+
+                if (sourceIndex < targetLength) {
+                    accumulator[targetIndex] = crossword.grid[sourceIndex];
+                }
+            }
+        }
+
+        if (size < previousSize) {
+            for (let i = 0; i < targetLength; i++) {
+                if (!accumulator[i]) {
+                    accumulator[i] = whiteSquare();
+                }
+            }
+        }
+
+        const grid = numberSquares(accumulator, size)
 
         return {
             type: ResultType.Success,
-            crossword
+            crossword: {
+                ...crossword,
+                grid,
+                metadata
+            },
+            undo: undo(resizeGrid(size), () => {
+                return {
+                    type: ResultType.Success,
+                    crossword: JSON.parse(previousState) as Crossword,
+                    undo: resizeGrid(size)
+                }
+            })
         }
-    }
-
-    function undo(crossword: Crossword) {
-        if (previousState) {
-            crossword = JSON.parse(previousState) as Crossword;
-        }
-
-        return crossword;
     }
 
     return {
-        type: EditorCommandType.ResizeGrid,
-        displayName: "resize grid",
-        renumber: true,
-        execute,
-        undo
+        commandType: () => EditorCommandType.ResizeGrid,
+        displayName: () => "resize grid",
+        execute
     }
 }
 

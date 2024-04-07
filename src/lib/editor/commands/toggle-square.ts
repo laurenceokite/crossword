@@ -1,14 +1,12 @@
-import type { Crossword, Square } from "../../crossword";
-import type { EditorCommand } from "../command";
-import { whiteSquare, blackSquare } from "../grid";
+import type { Crossword } from "../../crossword";
+import type { CommandExecutionResult, EditorCommand } from "../command";
+import { whiteSquare, blackSquare, numberSquares } from "../grid";
 import { CommandExecutionResultType, EditorCommandType } from "../command";
+import { undo } from "./undo";
 
 export function toggleSquare(index: number): EditorCommand {
-    let previousState: Square | null = null;
-
-    function execute(crossword: Crossword) {
-        const grid = [...crossword.grid];
-        const square = grid[index] ?? null;
+    function execute(crossword: Crossword): CommandExecutionResult {
+        const square = crossword.grid[index] ?? null;
 
         if (!square) {
             return {
@@ -17,35 +15,36 @@ export function toggleSquare(index: number): EditorCommand {
             }
         }
 
-        previousState = square;
-        grid[index] = square.isBlack
-            ? whiteSquare()
-            : blackSquare();
+        const previousState = square;
+        const newSquare = square.isBlack
+            ? whiteSquare
+            : blackSquare;
 
-        crossword.grid = grid;
+        const grid = crossword.grid.map((sq, i) => i === index ? newSquare() : sq);
 
         return {
             type: CommandExecutionResultType.Success,
-            crossword
-        };
-    }
-
-    function undo(crossword: Crossword) {
-        const grid = [...crossword.grid];
-        if (previousState) {
-            grid[index] = previousState;
-        }
-        return {
-            ...crossword,
-            grid
+            crossword: {
+                ...crossword,
+                grid: numberSquares(grid, crossword.metadata.size)
+            },
+            undo: undo(toggleSquare(index), (crossword: Crossword) => {
+                return {
+                    type: CommandExecutionResultType.Success,
+                    crossword: {
+                        ...crossword,
+                        grid: numberSquares(crossword.grid.map((sq, i) => i === index ? previousState : sq), crossword.metadata.size)
+                    },
+                    undo: toggleSquare(index)
+                }
+            })
         }
     }
 
     return {
-        type: EditorCommandType.ToggleSquare,
-        displayName: "toggle square color",
-        renumber: true,
-        execute,
-        undo
+        commandType: () => EditorCommandType.ToggleSquare,
+        displayName: () => "toggle square color",
+        execute
     }
 }
+

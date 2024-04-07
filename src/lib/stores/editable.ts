@@ -1,6 +1,6 @@
 import { writable } from "svelte/store";
-import type { Crossword } from "../crossword";
-import { CommandExecutionResultType, type EditorCommand } from "../editor/command";
+import type { Crossword, Grid } from "../crossword";
+import { CommandExecutionResultType, EditorCommandType, type EditorCommand } from "../editor/command";
 import type { EditableCrossword } from "../editor/types";
 import { newGrid, numberSquares } from "../editor/grid";
 import { createAnswerMap } from "./answer";
@@ -9,38 +9,45 @@ import { Orientation } from "../cursor";
 const { subscribe, set, update } = writable<EditableCrossword>(newEditable());
 
 function newEditable() {
-    const grid = newGrid(15);
     const metadata = {
         size: 15,
     };
 
+    const grid: Grid = numberSquares(newGrid(15), metadata.size);
+
+    const mapClues = (orientation: Orientation) => grid.reduce((map, square) => {
+        if (square.isBlack || map.has(square[orientation])) {
+            return map;
+        }
+
+        return map.set(square[orientation], "");
+    }, new Map());
+
     const clues = {
-        [Orientation.Across]: new Map(),
-        [Orientation.Down]: new Map(),
-    };
-
-    const crossword = numberSquares({
-        grid,
-        metadata,
-        clues
-    });
-
-    const answerMap = createAnswerMap(crossword.grid);
+        [Orientation.Across]: mapClues(Orientation.Across),
+        [Orientation.Down]: mapClues(Orientation.Down)
+    }
+    const answerMap = createAnswerMap(grid);
     const history = {
         undo: [],
         redo: []
     };
 
     return {
-        ...crossword,
+        grid,
+        metadata,
+        clues,
         answerMap,
         history
     }
 }
 
 function load(crossword: Crossword) {
-    if (!crossword.size) {
-        crossword.size = Math.ceil(Math.sqrt(crossword.grid.length));
+    if (
+        !crossword.metadata.size
+        || crossword.metadata.size != crossword.grid.length
+    ) {
+        crossword.metadata.size = Math.ceil(Math.sqrt(crossword.grid.length));
     }
 
     set({
@@ -53,78 +60,72 @@ function load(crossword: Crossword) {
     })
 }
 
-function undo() {
+type EditorHistory = {
+    undo: EditorCommand[],
+    redo: EditorCommand[]
+};
+
+function undoCommand() {
     update(editable => {
         const { undo, redo } = editable.history;
-
         const command = undo.pop();
 
-        if (command) {
-            editable = {
+        if (!command) {
+            return {
                 ...editable,
-                ...command.undo(editable)
-            }
-            redo.push(command);
-
-            if (command.renumber) {
-                editable = {
-                    ...editable,
-                    ...numberSquares(editable),
-                };
+                history: { undo, redo }
             }
         }
 
-        return {
-            ...editable,
-            history: { undo, redo },
-            answerMap: createAnswerMap(editable.grid),
-        }
-    });
-}
+        const result = command.execute(editable);
 
-function redo() {
-    update(editable => {
-        const { undo, redo } = editable.history;
-
-        const command = redo.pop();
-        if (command) {
-            execute(command, false);
+        if (result.type === CommandExecutionResultType.NoOperation) {
+            return {
+                ...editable,
+                history: { undo, redo }
+            };
         }
 
+        const { commandType } = command;
+        const rebuildAnswerMap = commandType() === EditorCommandType.ToggleSquare || commandType() === EditorCommandType.ResizeGrid;
+
         return {
-            ...editable,
+            ...result.crossword,
+            answerMap: rebuildAnswerMap ? createAnswerMap(result.crossword.grid) : editable.answerMap,
             history: { undo, redo }
         }
-    });
+
+    })
 }
 
-function execute(command: EditorCommand, clearRedoStack = true) {
+function redoCommand(history: EditorHistory) {
+    const { redo } = history;
+    const command = redo.pop();
+
+    if (command) {
+        execute(command, redo);
+    }
+}
+
+function execute(command: EditorCommand, redo: EditorCommand[] = []) {
     update(editable => {
         const result = command.execute(editable);
-        const { undo, redo } = editable.history;
-        let { crossword } = result;
-        let { answerMap } = editable;
+        const { undo } = editable.history;
 
-        if (result.type == CommandExecutionResultType.Success) {
-            if (clearRedoStack) {
-                redo.length = 0;
-            }
-            undo.push(command);
-
-            while (undo.length > 100) {
-                undo.shift();
-            }
-
-            if (command.renumber) {
-                crossword = numberSquares(crossword);
-                answerMap = createAnswerMap(crossword.grid);
-            }
+        if (result.type === CommandExecutionResultType.NoOperation) {
+            return editable;
         }
 
+        while (undo.length > 100) {
+            undo.shift();
+        }
+
+        const { commandType } = command;
+        const rebuildAnswerMap = commandType() === EditorCommandType.ToggleSquare || commandType() === EditorCommandType.ResizeGrid;
+
         return {
-            ...editable,
-            ...crossword,
-            ...answerMap,
+            ...result.crossword,
+            answerMap: rebuildAnswerMap ? createAnswerMap(result.crossword.grid) : editable.answerMap,
             history: { undo, redo }
         }
     })
@@ -133,7 +134,7 @@ function execute(command: EditorCommand, clearRedoStack = true) {
 export default {
     subscribe,
     load,
-    undo,
-    redo,
+    undo: undoCommand,
+    redo: redoCommand,
     execute
 };

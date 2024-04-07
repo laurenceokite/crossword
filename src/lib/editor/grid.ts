@@ -26,11 +26,12 @@ export function numberSquares(grid: Grid, size: number, result: Grid = [], index
         result.push({
             ...square,
             across: newAcross ? number : left.across,
-            down: newDown ? number : up.down
+            down: newDown ? number : up.down,
+            number: newAcross || newDown ? number : null
         });
     }
 
-    return numberSquares(grid, size, result, index, number);
+    return numberSquares(grid, size, result, index + 1, number);
 }
 
 export function whiteSquare(): WhiteSquare {
@@ -40,7 +41,7 @@ export function whiteSquare(): WhiteSquare {
         value: "",
         across: 0,
         down: 0,
-        number: 0,
+        number: null,
         decoration: null,
         rebus: false
     }

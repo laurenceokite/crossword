@@ -8,18 +8,13 @@
     import { onMount } from "svelte";
     import { toggleSquare } from "../editor/commands/toggle-square";
     import { resizeGrid } from "../editor/commands/resize";
-    import NumberInput from "./form/NumberInput.svelte";
-    import type { FormChild } from "./form/validation";
+    import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../constants";
 
     export let init: Crossword | undefined = undefined;
 
-    const MAX_GRID_SIZE = 30;
-    const MIN_GRID_SIZE = 3;
-
     const crossword = $editable;
-    let size = crossword.size;
+    let size = crossword.metadata.size;
     let editMode = EditMode.Grid;
-    let validateSize: FormChild["validate"];
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         editable.execute(updateValue(...event.detail));
@@ -53,7 +48,7 @@
             return;
         }
 
-        if (newSize !== crossword.size) {
+        if (newSize !== crossword.metadata.size) {
             editable.execute(resizeGrid(newSize));
         }
     }
@@ -94,23 +89,21 @@
             value={EditMode.Insert}
         />
     </fieldset>
-    {#key $editable.history}
-        <button
-            type="button"
-            on:click={() => editable.undo()}
-            disabled={!crossword.history.undo.length}
-        >
-            Undo
-        </button>
+    <button
+        type="button"
+        on:click={() => editable.undo($editable.history)}
+        disabled={!$editable.history.undo.length}
+    >
+        Undo
+    </button>
 
-        <button
-            type="button"
-            on:click={() => editable.redo()}
-            disabled={!crossword.history.redo.length}
-        >
-            Redo
-        </button>
-    {/key}
+    <button
+        type="button"
+        on:click={() => editable.redo($editable.history)}
+        disabled={!$editable.history.redo.length}
+    >
+        Redo
+    </button>
 </div>
 <div class="editor-grid flex items-center justify-center">
     <InputGrid
