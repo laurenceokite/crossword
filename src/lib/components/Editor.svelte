@@ -89,21 +89,23 @@
             value={EditMode.Insert}
         />
     </fieldset>
-    <button
-        type="button"
-        on:click={() => editable.undo($editable.history)}
-        disabled={!$editable.history.undo.length}
-    >
-        Undo
-    </button>
+    {#key $editable.history}
+        <button
+            type="button"
+            on:click={() => editable.undo(crossword.history)}
+            disabled={!crossword.history.undo.length}
+        >
+            Undo
+        </button>
 
-    <button
-        type="button"
-        on:click={() => editable.redo($editable.history)}
-        disabled={!$editable.history.redo.length}
-    >
-        Redo
-    </button>
+        <button
+            type="button"
+            on:click={() => editable.redo(crossword.history)}
+            disabled={!$editable.history.redo.length}
+        >
+            Redo
+        </button>
+    {/key}
 </div>
 <div class="editor-grid flex items-center justify-center">
     <InputGrid

@@ -65,40 +65,16 @@ type EditorHistory = {
     redo: EditorCommand[]
 };
 
-function undoCommand() {
-    update(editable => {
-        const { undo, redo } = editable.history;
-        const command = undo.pop();
+function _undo(history: EditorHistory) {
+    const { undo, redo } = history;
+    const command = undo.pop();
 
-        if (!command) {
-            return {
-                ...editable,
-                history: { undo, redo }
-            }
-        }
-
-        const result = command.execute(editable);
-
-        if (result.type === CommandExecutionResultType.NoOperation) {
-            return {
-                ...editable,
-                history: { undo, redo }
-            };
-        }
-
-        const { commandType } = command;
-        const rebuildAnswerMap = commandType() === EditorCommandType.ToggleSquare || commandType() === EditorCommandType.ResizeGrid;
-
-        return {
-            ...result.crossword,
-            answerMap: rebuildAnswerMap ? createAnswerMap(result.crossword.grid) : editable.answerMap,
-            history: { undo, redo }
-        }
-
-    })
+    if (command) {
+        execute(command, redo, undo);
+    }
 }
 
-function redoCommand(history: EditorHistory) {
+function _redo(history: EditorHistory) {
     const { redo } = history;
     const command = redo.pop();
 
@@ -107,13 +83,19 @@ function redoCommand(history: EditorHistory) {
     }
 }
 
-function execute(command: EditorCommand, redo: EditorCommand[] = []) {
+function execute(command: EditorCommand, redo: EditorCommand[] = [], undo?: EditorCommand[]) {
     update(editable => {
         const result = command.execute(editable);
-        const { undo } = editable.history;
 
         if (result.type === CommandExecutionResultType.NoOperation) {
             return editable;
+        }
+
+        if (!undo) {
+            undo = editable.history.undo;
+            undo.push(result.undo);
+        } else {
+            redo.push(result.undo);
         }
 
         while (undo.length > 100) {
@@ -134,7 +116,7 @@ function execute(command: EditorCommand, redo: EditorCommand[] = []) {
 export default {
     subscribe,
     load,
-    undo: undoCommand,
-    redo: redoCommand,
+    undo: _undo,
+    redo: _redo,
     execute
 };
