@@ -1,7 +1,6 @@
 import type { Crossword, WhiteSquare } from "../crossword";
 import { Orientation, type CursorState, Direction } from "../cursor";
 import { writable } from "svelte/store";
-import type { AnswerMap } from "./types";
 import type { EditableCrossword } from "../editor/types";
 
 const cursorStore = writable<CursorState>({
@@ -15,51 +14,46 @@ function move(
     skipBlack: boolean = false
 ) {
     cursorStore.update(cursor => {
-        let { orientation } = cursor;
-
         const targetOrientation = direction === Direction.Up || direction === Direction.Down
             ? Orientation.Down
             : Orientation.Across;
+        const { size } = crossword.metadata;
 
-        if (orientation !== targetOrientation) {
-            orientation = targetOrientation;
-
-            if (skipBlack) {
-                return {
-                    ...cursor,
-                    orientation: targetOrientation
-                };
-            }
+        if (cursor.orientation !== targetOrientation && skipBlack) {
+            return {
+                ...cursor,
+                orientation: targetOrientation
+            };
         }
 
         if (
-            isAtMovementBound(crossword.size, direction, cursor.index)
+            isAtMovementBound(size, direction, cursor.index)
         ) {
             return cursor;
         }
 
-        const increment = getIncrement(crossword.size, direction);
-        const ciel = (crossword.size ** 2) - 1;
+        const increment = getIncrement(size, direction);
+        const ciel = (size ** 2) - 1;
         let index = cursor.index + increment;
 
         if (index < 0 || index > ciel) {
             return {
                 ...cursor,
-                orientation
+                orientation: targetOrientation
             };
         }
 
         if (skipBlack && crossword.grid[index].isBlack) {
             let position = cursor.orientation === Orientation.Across
-                ? getXIndex(crossword.size, index)
-                : getYIndex(crossword.size, index);
+                ? getXIndex(size, index)
+                : getYIndex(size, index);
 
-            for (position; position < crossword.size; position++) {
+            for (position; position < size; position++) {
                 index += increment;
 
                 if (crossword.grid[index] && !crossword.grid[index].isBlack) {
                     return {
-                        orientation,
+                        orientation: targetOrientation,
                         index
                     }
                 }
@@ -67,12 +61,12 @@ function move(
 
             return {
                 ...cursor,
-                orientation
+                orientation: targetOrientation
             };
         }
 
         return {
-            orientation,
+            orientation: targetOrientation,
             index
         };
     });
@@ -133,7 +127,7 @@ function goToNextEmptySquare(crossword: EditableCrossword) {
         }
 
         const number = square[cursor.orientation];
-        const increment = cursor.orientation === Orientation.Down ? crossword.size : 1;
+        const increment = cursor.orientation === Orientation.Down ? crossword.metadata.size : 1;
 
         index += increment;
         while (grid[index] && !grid[index].isBlack && (grid[index] as WhiteSquare)[cursor.orientation] === number) {
@@ -186,8 +180,6 @@ function goToNextEmptySquare(crossword: EditableCrossword) {
         }
 
         let answerIter = crossword.answerMap.down.entries();
-
-        console.log(crossword.answerMap.down);
 
         while (answerIter.next().value[0] !== number);
 

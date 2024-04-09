@@ -51,7 +51,7 @@
 <div
     class="relative border border-1 border-gray-500"
     class:bg-blue-100={highlighted && !disabled}
-    class:bg-yellow-200={selected}
+    class:bg-yellow-200={selected && !disabled}
     class:bg-blue-200={selected && disabled && square}
     class:bg-gray-950={square === null}
     class:bg-gray-600={selected && disabled && square === null}

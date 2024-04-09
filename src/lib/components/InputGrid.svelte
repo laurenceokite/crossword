@@ -70,6 +70,10 @@
                 skipToNextEmptySquare = false;
                 cursor.move($crossword, Direction.Left, true);
                 break;
+
+            case " ":
+                event.preventDefault();
+                cursor.toggleOrientation();
         }
     }
 
