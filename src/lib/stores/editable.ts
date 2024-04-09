@@ -1,33 +1,54 @@
 import { writable } from "svelte/store";
-import type { Crossword, Grid } from "../crossword";
+import type { ClueSet, Crossword, Grid } from "../crossword";
 import { CommandExecutionResultType, EditorCommandType, type EditorCommand } from "../editor/command";
 import type { EditableCrossword } from "../editor/types";
 import { newGrid, numberSquares } from "../editor/grid";
 import { createAnswerMap } from "./answer";
 import { Orientation } from "../cursor";
+import type { AnswerMap } from "./types";
 
 const { subscribe, set, update } = writable<EditableCrossword>(newEditable());
+
+function newClue() {
+    return { text: "", associations: [] }
+};
+
+function buildClues(answerMap: AnswerMap, clues?: ClueSet): ClueSet {
+    const { across, down } = answerMap
+    const updatedClues: ClueSet = {
+        across: new Map(),
+        down: new Map()
+    }
+
+    across.forEach((_, number) => {
+        if (clues && clues.across.has(number)) {
+            updatedClues.across.set(number, clues.across.get(number) ?? newClue());
+        } else {
+            updatedClues.across.set(number, newClue());
+        }
+    })
+
+    down.forEach((_, number) => {
+        if (clues && clues.down.has(number)) {
+            updatedClues.down.set(number, clues.across.get(number) ?? newClue());
+        } else {
+            updatedClues.down.set(number, newClue());
+        }
+    })
+
+    return updatedClues;
+}
 
 function newEditable() {
     const metadata = {
         size: 15,
     };
 
-    const grid: Grid = numberSquares(newGrid(15), metadata.size);
+    const grid = numberSquares(newGrid(15), metadata.size);
 
-    const mapClues = (orientation: Orientation) => grid.reduce((map, square) => {
-        if (square.isBlack || map.has(square[orientation])) {
-            return map;
-        }
-
-        return map.set(square[orientation], "");
-    }, new Map());
-
-    const clues = {
-        [Orientation.Across]: mapClues(Orientation.Across),
-        [Orientation.Down]: mapClues(Orientation.Down)
-    }
     const answerMap = createAnswerMap(grid);
+    const clues = buildClues(answerMap);
+
     const history = {
         undo: [],
         redo: []
@@ -103,11 +124,14 @@ function execute(command: EditorCommand, redo: EditorCommand[] = [], undo?: Edit
         }
 
         const { commandType } = command;
-        const rebuildAnswerMap = commandType() === EditorCommandType.ToggleSquare || commandType() === EditorCommandType.ResizeGrid;
+        const renumber = commandType() === EditorCommandType.ToggleSquare || commandType() === EditorCommandType.ResizeGrid;
+        const answerMap = renumber ? createAnswerMap(editable.grid) : editable.answerMap;
+        const clues = renumber ? buildClues(answerMap, editable.clues) : editable.clues;
 
         return {
             ...result.crossword,
-            answerMap: rebuildAnswerMap ? createAnswerMap(result.crossword.grid) : editable.answerMap,
+            answerMap,
+            clues,
             history: { undo, redo }
         }
     })

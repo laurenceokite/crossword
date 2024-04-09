@@ -9,6 +9,7 @@
     import { toggleSquare } from "../editor/commands/toggle-square";
     import { resizeGrid } from "../editor/commands/resize";
     import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../constants";
+    import Clues from "./Clues.svelte";
 
     export let init: Crossword | undefined = undefined;
 
@@ -121,6 +122,8 @@
         {/if}
     </InputGrid>
 </div>
+
+<Clues />
 
 <style>
     :root {
