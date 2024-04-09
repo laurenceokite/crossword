@@ -5,6 +5,7 @@
     export let square: WhiteSquare | null;
     export let index: number;
     export let highlighted: boolean;
+    export let focusable: boolean;
     export let disabled: boolean;
     export let selected: boolean;
 
@@ -16,11 +17,7 @@
         clearValue: number;
     }>();
 
-    $: if (disabled && selected && inputElement) {
-        inputElement.blur();
-    }
-
-    $: if (!disabled && selected && inputElement) {
+    $: if (focusable && selected && inputElement) {
         inputElement.focus();
     }
 
@@ -56,7 +53,7 @@
     class:bg-gray-950={square === null}
     class:bg-gray-600={selected && disabled && square === null}
 >
-    {#key disabled}
+    {#key focusable}
         {#if square}
             {#if square.number}
                 <div class="absolute top-0 left-1 text-xs leading-tight">
@@ -71,8 +68,8 @@
                 bind:this={inputElement}
                 type="text"
                 maxlength="6"
-                {disabled}
                 class="bg-transparent text-center font-semibold w-full h-full focus:ring-2 ring-inset"
+                {disabled}
             />
         {/if}
     {/key}

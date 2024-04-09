@@ -8,7 +8,10 @@
     import { createEventDispatcher, onMount } from "svelte";
 
     export let disabled: boolean;
+    export let focused: boolean = false;
     export let editor: boolean = false;
+
+    let containerEl: HTMLElement;
 
     const crossword = editor ? editable : editable;
 
@@ -40,7 +43,7 @@
     }
 
     function handleKeydown(event: KeyboardEvent) {
-        if (disabled) {
+        if (disabled || !focused) {
             return;
         }
 
@@ -121,6 +124,8 @@
     class="input-grid grid aspect-square w-max h-max relative border-2 border-gray-950"
     style="--grid-size: {$crossword.metadata.size}"
     role="group"
+    on:focusin={() => (focused = true)}
+    on:focusout={() => (focused = false)}
 >
     {#each $crossword.grid as square, index}
         {#key $cursor}
@@ -131,6 +136,7 @@
                 square={square.isBlack ? null : square}
                 selected={index === $cursor.index}
                 highlighted={!square.isBlack && isHighlighted(square)}
+                focusable={focused}
                 {disabled}
                 {index}
             />

@@ -10,7 +10,7 @@ export function numberSquares(grid: Grid, size: number, result: Grid = [], index
 
     const square = grid[index];
     const left = (length > 0 && length % size) ? result[length - 1] : null;
-    const up = length > size ? result[length - size] : null;
+    const up = length > size - 1 ? result[length - size] : null;
 
     if (square.isBlack) {
         result.push(blackSquare());

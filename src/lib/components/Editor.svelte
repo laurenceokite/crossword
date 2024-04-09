@@ -15,6 +15,7 @@
     const crossword = $editable;
     let size = crossword.metadata.size;
     let editMode = EditMode.Grid;
+    let focusGrid = true;
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         editable.execute(updateValue(...event.detail));
@@ -111,6 +112,7 @@
     <InputGrid
         on:updateValue={handleUpdateValue}
         on:clearValue={handleClearValue}
+        bind:focused={focusGrid}
         editor={true}
         disabled={editMode !== EditMode.Insert}
     >
