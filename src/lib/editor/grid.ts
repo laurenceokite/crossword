@@ -25,6 +25,7 @@ export function numberSquares(grid: Grid, size: number, result: Grid = [], index
 
         result.push({
             ...square,
+            index,
             across: newAcross ? number : left.across,
             down: newDown ? number : up.down,
             number: newAcross || newDown ? number : null

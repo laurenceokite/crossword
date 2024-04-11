@@ -54,7 +54,7 @@
     class:bg-gray-600={selected && disabled && square === null}
 >
     {#key focusable}
-        {#if square}
+        {#if square !== null}
             {#if square.number}
                 <div class="absolute top-0 left-1 text-xs leading-tight">
                     {square.number}

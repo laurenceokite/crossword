@@ -124,19 +124,3 @@
 </div>
 
 <Clues />
-
-<style>
-    :root {
-        --grid-dimension: 100vw;
-    }
-
-    @media (min-aspect-ratio: 1/1) {
-        :root {
-            --grid-dimension: 70vh;
-        }
-    }
-    .editor-grid {
-        width: var(--grid-dimension);
-        height: var(--grid-dimension);
-    }
-</style>
