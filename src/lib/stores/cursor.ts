@@ -2,6 +2,7 @@ import type { Crossword, WhiteSquare } from "../crossword";
 import { Orientation, type CursorState, Direction } from "../cursor";
 import { writable } from "svelte/store";
 import type { EditableCrossword } from "../editor/types";
+import type { AnswerMap } from "./types";
 
 const cursorStore = writable<CursorState>({
     index: 0,

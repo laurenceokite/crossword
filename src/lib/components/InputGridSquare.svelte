@@ -3,13 +3,14 @@
     import { createEventDispatcher } from "svelte";
 
     export let square: WhiteSquare | null;
-    export let index: number;
     export let highlighted: boolean;
     export let focusable: boolean;
     export let disabled: boolean;
     export let selected: boolean;
+    export let displayNumber = true;
 
     let inputElement: HTMLInputElement | null = null;
+    let hasFocus = false;
 
     const dispatch = createEventDispatcher<{
         selectSquare: number;
@@ -17,11 +18,13 @@
         clearValue: number;
     }>();
 
-    $: if (focusable && selected && inputElement) {
+    $: if (focusable && selected && inputElement && !hasFocus) {
         inputElement.focus();
     }
 
     function handleInput(event: Event) {
+        if (!square) return;
+
         const el = event.target as HTMLInputElement;
 
         el.value = el.value.trim();
@@ -32,36 +35,42 @@
 
         el.value = el.value.toLocaleUpperCase();
 
-        dispatch("updateValue", [index, el.value]);
+        dispatch("updateValue", [square.index, el.value]);
     }
 
     function handleKeydown(event: KeyboardEvent) {
+        if (!square) return;
         switch (event.key) {
             case "Backspace":
                 event.preventDefault();
-                dispatch("clearValue", index);
+                dispatch("clearValue", square.index);
                 break;
         }
+    }
+
+    function handleClick() {
+        if (!square) return;
+        dispatch("selectSquare", square.index);
     }
 </script>
 
 <div
-    class="relative border border-1 border-gray-500"
     class:bg-blue-100={highlighted && !disabled}
-    class:bg-yellow-200={selected && !disabled}
-    class:bg-blue-200={selected && disabled && square}
+    class:bg-blue-200={selected && !focusable}
+    class:bg-yellow-100={selected && focusable}
     class:bg-gray-950={square === null}
     class:bg-gray-600={selected && disabled && square === null}
+    class="relative border border-1 border-gray-500 h-full aspect-square"
 >
     {#key focusable}
         {#if square !== null}
-            {#if square.number}
+            {#if square.number && displayNumber}
                 <div class="absolute top-0 left-1 text-xs leading-tight">
                     {square.number}
                 </div>
             {/if}
             <input
-                on:click={() => dispatch("selectSquare", index)}
+                on:click={() => handleClick()}
                 on:input={handleInput}
                 on:keydown={handleKeydown}
                 value={square.value}

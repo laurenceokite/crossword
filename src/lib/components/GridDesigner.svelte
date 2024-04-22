@@ -4,13 +4,19 @@
     import cursor from "../stores/cursor";
     import { Direction } from "../cursor";
 
+    export let focusable = true;
+
     const dispatch = createEventDispatcher<{
         toggleSquare: number;
     }>();
 
     let inputElements: HTMLInputElement[] = [];
 
-    $: if (inputElements.length && inputElements.length > $cursor.index) {
+    $: if (
+        focusable &&
+        inputElements.length &&
+        inputElements.length > $cursor.index
+    ) {
         inputElements[$cursor.index].focus();
     }
 

@@ -16,7 +16,15 @@
     const crossword = $editable;
     let size = crossword.metadata.size;
     let editMode = EditMode.Grid;
-    let focusGrid = true;
+
+    enum Section {
+        Grid,
+        Clues,
+        Control,
+    }
+    let focus = Section.Grid;
+
+    $: console.log(focus);
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         editable.execute(updateValue(...event.detail));
@@ -72,7 +80,13 @@
     });
 </script>
 
-<div class="">
+<section
+    class=""
+    on:focusin={() => {
+        if (focus === Section.Control) return;
+        focus = Section.Control;
+    }}
+>
     <fieldset id="editorModeRadioGroup">
         <legend>Editor Mode [Esc]</legend>
         <label for="gridModeRadioButton">Grid</label>
@@ -108,19 +122,41 @@
             Redo
         </button>
     {/key}
-</div>
-<div class="editor-grid flex items-center justify-center">
+</section>
+
+<section
+    class="editor-grid flex items-center justify-center"
+    on:focusin={() => {
+        if (focus === Section.Grid) return;
+        focus = Section.Grid;
+    }}
+>
     <InputGrid
         on:updateValue={handleUpdateValue}
         on:clearValue={handleClearValue}
-        bind:focused={focusGrid}
+        focused={focus === Section.Grid}
         editor={true}
         disabled={editMode !== EditMode.Insert}
     >
         {#if editMode === EditMode.Grid}
-            <GridDesigner on:toggleSquare={handleToggleSquare} />
+            <GridDesigner
+                on:toggleSquare={handleToggleSquare}
+                focusable={focus === Section.Grid}
+            />
         {/if}
     </InputGrid>
-</div>
+</section>
 
-<Clues />
+<section
+    on:focusin={() => {
+        if (focus === Section.Clues) return;
+        focus = Section.Clues;
+        editMode = EditMode.Insert;
+    }}
+>
+    <Clues
+        editor={true}
+        focused={focus === Section.Clues}
+        on:updateValue={handleUpdateValue}
+    />
+</section>

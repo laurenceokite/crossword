@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { createEventDispatcher } from "svelte";
     import type { WhiteSquare } from "../crossword";
     import { Orientation } from "../cursor";
     import cursor from "../stores/cursor";
@@ -7,6 +8,11 @@
 
     export let focused = false;
     export let editor = false;
+
+    const dispatch = createEventDispatcher<{
+        selectSquare: number;
+        updateValue: [number, string];
+    }>();
 
     const crossword = editable;
 
@@ -51,6 +57,34 @@
     ): WhiteSquare[] | [] {
         return answerSquares[orientation].get(number) ?? [];
     }
+
+    function handleSelectSquare(event: CustomEvent<number>) {
+        if ($cursor.index === event.detail) return;
+
+        cursor.setIndex($crossword.metadata.size, event.detail);
+        dispatch("selectSquare", event.detail);
+    }
+
+    function handleUpdateValue(event: CustomEvent<[number, string]>) {
+        const { orientation } = $cursor;
+        const word = currentNumber
+            ? answerSquares[orientation].get(currentNumber[orientation])
+            : null;
+
+        if (!word || !word.length) return;
+
+        dispatch("updateValue", event.detail);
+
+        const index = word.findIndex((s) => s.index === $cursor.index);
+
+        if (index >= word.length - 1) return;
+
+        const nextSquare = word[index + 1];
+
+        if (!nextSquare) return;
+
+        cursor.setIndex($crossword.metadata.size, nextSquare.index);
+    }
 </script>
 
 <div>
@@ -60,8 +94,15 @@
                 <ClueInput
                     {clue}
                     {number}
+                    focused={focused &&
+                        !!currentNumber &&
+                        currentNumber[$cursor.orientation] === number}
+                    {editor}
+                    currentNumber={currentNumber ? currentNumber.across : null}
                     cursor={$cursor}
                     squares={getSquares(Orientation.Across, number)}
+                    on:updateValue={handleUpdateValue}
+                    on:selectSquare={handleSelectSquare}
                 />
             </li>
         {/each}
