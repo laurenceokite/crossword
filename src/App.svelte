@@ -10,7 +10,7 @@
   });
 </script>
 
-<main>
+<main class="">
   <Editor />
 </main>
 

@@ -80,83 +80,86 @@
     });
 </script>
 
-<section
-    class=""
-    on:focusin={() => {
-        if (focus === Section.Control) return;
-        focus = Section.Control;
-    }}
->
-    <fieldset id="editorModeRadioGroup">
-        <legend>Editor Mode [Esc]</legend>
-        <label for="gridModeRadioButton">Grid</label>
-        <input
-            type="radio"
-            id="gridModeRadioButton"
-            bind:group={editMode}
-            value={EditMode.Grid}
-        />
-
-        <label for="insertModeRadioButton">Insert</label>
-        <input
-            type="radio"
-            id="insertModeRadioButton"
-            bind:group={editMode}
-            value={EditMode.Insert}
-        />
-    </fieldset>
-    {#key $editable.history}
-        <button
-            type="button"
-            on:click={() => editable.undo(crossword.history)}
-            disabled={!crossword.history.undo.length}
-        >
-            Undo
-        </button>
-
-        <button
-            type="button"
-            on:click={() => editable.redo(crossword.history)}
-            disabled={!$editable.history.redo.length}
-        >
-            Redo
-        </button>
-    {/key}
-</section>
-
-<section
-    class="editor-grid flex items-center justify-center"
-    on:focusin={() => {
-        if (focus === Section.Grid) return;
-        focus = Section.Grid;
-    }}
->
-    <InputGrid
-        on:updateValue={handleUpdateValue}
-        on:clearValue={handleClearValue}
-        focused={focus === Section.Grid}
-        editor={true}
-        disabled={editMode !== EditMode.Insert}
+<div class="container flex w-full max-h-screen pt-24">
+    <section
+        class="fixed h-24 top-0 left-0 right-0"
+        on:focusin={() => {
+            if (focus === Section.Control) return;
+            focus = Section.Control;
+        }}
     >
-        {#if editMode === EditMode.Grid}
-            <GridDesigner
-                on:toggleSquare={handleToggleSquare}
-                focusable={focus === Section.Grid}
+        <fieldset id="editorModeRadioGroup">
+            <legend>Editor Mode [Esc]</legend>
+            <label for="gridModeRadioButton">Grid</label>
+            <input
+                type="radio"
+                id="gridModeRadioButton"
+                bind:group={editMode}
+                value={EditMode.Grid}
             />
-        {/if}
-    </InputGrid>
-</section>
 
-<section
-    on:focusin={() => {
-        if (focus === Section.Clues) return;
-        focus = Section.Clues;
-        editMode = EditMode.Insert;
-    }}
->
-    <Clues
-        editor={true}
-        focused={focus === Section.Clues}
-        on:updateValue={handleUpdateValue}
-    />
-</section>
+            <label for="insertModeRadioButton">Insert</label>
+            <input
+                type="radio"
+                id="insertModeRadioButton"
+                bind:group={editMode}
+                value={EditMode.Insert}
+            />
+        </fieldset>
+        {#key $editable.history}
+            <button
+                type="button"
+                on:click={() => editable.undo(crossword.history)}
+                disabled={!crossword.history.undo.length}
+            >
+                Undo
+            </button>
+
+            <button
+                type="button"
+                on:click={() => editable.redo(crossword.history)}
+                disabled={!$editable.history.redo.length}
+            >
+                Redo
+            </button>
+        {/key}
+    </section>
+
+    <section
+        class="flex flex-1 justify-center"
+        on:focusin={() => {
+            if (focus === Section.Grid) return;
+            focus = Section.Grid;
+        }}
+    >
+        <InputGrid
+            on:updateValue={handleUpdateValue}
+            on:clearValue={handleClearValue}
+            focused={focus === Section.Grid}
+            editor={true}
+            disabled={editMode !== EditMode.Insert}
+        >
+            {#if editMode === EditMode.Grid}
+                <GridDesigner
+                    on:toggleSquare={handleToggleSquare}
+                    focusable={focus === Section.Grid}
+                />
+            {/if}
+        </InputGrid>
+    </section>
+
+    <section
+        class="flex flex-1 justify-center"
+        on:focusin={() => {
+            if (focus === Section.Clues) return;
+            focus = Section.Clues;
+            editMode = EditMode.Insert;
+        }}
+    >
+        <Clues
+            editor={true}
+            focused={focus === Section.Clues}
+            on:updateValue={handleUpdateValue}
+        />
+    </section>
+</div>

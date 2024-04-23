@@ -87,14 +87,15 @@
     }
 </script>
 
-<div>
-    <ul>
+<div class="flex max-h-full">
+    <ul class="overflow-auto">
         {#each [...$crossword.clues.across.entries()] as [number, clue] (number)}
             <li>
                 <ClueInput
                     {clue}
                     {number}
                     focused={focused &&
+                        $cursor.orientation === Orientation.Across &&
                         !!currentNumber &&
                         currentNumber[$cursor.orientation] === number}
                     {editor}
@@ -107,9 +108,24 @@
             </li>
         {/each}
     </ul>
-    <ul>
+    <ul class="overflow-auto">
         {#each [...$crossword.clues.down.entries()] as [number, clue] (number)}
-            <li></li>
+            <li>
+                <ClueInput
+                    {clue}
+                    {number}
+                    focused={focused &&
+                        $cursor.orientation === Orientation.Down &&
+                        !!currentNumber &&
+                        currentNumber[$cursor.orientation] === number}
+                    {editor}
+                    currentNumber={currentNumber ? currentNumber.down : null}
+                    cursor={$cursor}
+                    squares={getSquares(Orientation.Down, number)}
+                    on:updateValue={handleUpdateValue}
+                    on:selectSquare={handleSelectSquare}
+                />
+            </li>
         {/each}
     </ul>
 </div>

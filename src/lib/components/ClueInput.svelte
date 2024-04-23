@@ -17,21 +17,25 @@
     }
 </script>
 
-<div class="border p-2">
+<div
+    class="border p-2"
+    class:bg-blue-100={number === currentNumber && focused}
+    class:bg-blue-50={number === currentNumber && !focused}
+>
     <div class="font-semibold">{number}</div>
     {#if editor}
-        <input
-            type="text"
+        <textarea
+            class="my-4 h-8 w-full border border-black"
             value={clue.text}
             on:focus={() => {
                 squareInputMode = false;
             }}
-        />
+        ></textarea>
     {:else}
         <div>{clue.text}</div>
     {/if}
     <ul
-        class="flex border border-black w-fit"
+        class="flex border border-black w-fit bg-white"
         on:focusin={() => {
             squareInputMode = true;
         }}
