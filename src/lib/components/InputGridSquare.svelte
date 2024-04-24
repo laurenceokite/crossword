@@ -1,8 +1,10 @@
 <script lang="ts">
-    import type { WhiteSquare } from "../crossword";
+    import type { WhiteSquare } from "../types";
     import { createEventDispatcher } from "svelte";
 
     export let square: WhiteSquare | null;
+    export let ariaColindex: number | undefined;
+    export let ariaRowindex: number | undefined;
     export let highlighted: boolean;
     export let focusable: boolean;
     export let disabled: boolean;
@@ -60,12 +62,15 @@
     class:bg-yellow-100={selected && focusable}
     class:bg-gray-950={square === null}
     class:bg-gray-600={selected && disabled && square === null}
-    class="relative border border-1 border-gray-500 h-full aspect-square"
+    class="relative border border-1 border-gray-500 aspect-square"
+    role="gridcell"
+    aria-colindex={ariaColindex}
+    aria-rowindex={ariaRowindex}
 >
     {#key focusable}
         {#if square !== null}
             {#if square.number && displayNumber}
-                <div class="absolute top-0 left-1 text-xs leading-tight">
+                <div class="absolute top-0 left-0 text-tiny pl-[2px]">
                     {square.number}
                 </div>
             {/if}
@@ -77,8 +82,9 @@
                 bind:this={inputElement}
                 type="text"
                 maxlength="6"
-                class="bg-transparent text-center font-semibold w-full h-full focus:ring-2 ring-inset"
+                class="bg-transparent text-center font-semibold w-full focus:ring-2 ring-inset"
                 {disabled}
+                tabindex="-1"
             />
         {/if}
     {/key}

@@ -1,8 +1,5 @@
-import type { Crossword, WhiteSquare } from "../crossword";
-import { Orientation, type CursorState, Direction } from "../cursor";
+import { Direction, Orientation, type Crossword, type CursorState, type EditableCrossword, type WhiteSquare } from "../types";
 import { writable } from "svelte/store";
-import type { EditableCrossword } from "../editor/types";
-import type { AnswerMap } from "./types";
 
 const cursorStore = writable<CursorState>({
     index: 0,
@@ -18,7 +15,7 @@ function move(
         const targetOrientation = direction === Direction.Up || direction === Direction.Down
             ? Orientation.Down
             : Orientation.Across;
-        const { size } = crossword.metadata;
+        const { size } = crossword;
 
         if (cursor.orientation !== targetOrientation && skipBlack) {
             return {
@@ -128,7 +125,7 @@ function goToNextEmptySquare(crossword: EditableCrossword) {
         }
 
         const number = square[cursor.orientation];
-        const increment = cursor.orientation === Orientation.Down ? crossword.metadata.size : 1;
+        const increment = cursor.orientation === Orientation.Down ? crossword.size : 1;
 
         index += increment;
         while (grid[index] && !grid[index].isBlack && (grid[index] as WhiteSquare)[cursor.orientation] === number) {

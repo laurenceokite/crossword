@@ -1,7 +1,5 @@
-import type { Crossword } from "../../crossword";
-import type { CommandExecutionResult, EditorCommand } from "../command";
-import { whiteSquare, blackSquare, numberSquares } from "../grid";
-import { CommandExecutionResultType, EditorCommandType } from "../command";
+import { newSquare, numberSquares } from "../grid";
+import { CommandExecutionResultType, EditorCommandType, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
 import { undo } from "./undo";
 
 export function toggleSquare(index: number): EditorCommand {
@@ -15,25 +13,21 @@ export function toggleSquare(index: number): EditorCommand {
             }
         }
 
-        const previousState = square;
-        const newSquare = square.isBlack
-            ? whiteSquare
-            : blackSquare;
-
-        const grid = crossword.grid.map((sq, i) => i === index ? newSquare() : sq);
+        // interpolate the new square into the array et the proper index using map
+        const grid = crossword.grid.map((sq, i) => i === index ? newSquare(!square.isBlack) : sq);
 
         return {
             type: CommandExecutionResultType.Success,
             crossword: {
                 ...crossword,
-                grid: numberSquares(grid, crossword.metadata.size)
+                grid: numberSquares(grid, crossword.size)
             },
             undo: undo(toggleSquare(index), (crossword: Crossword) => {
                 return {
                     type: CommandExecutionResultType.Success,
                     crossword: {
                         ...crossword,
-                        grid: numberSquares(crossword.grid.map((sq, i) => i === index ? previousState : sq), crossword.metadata.size)
+                        grid: numberSquares(crossword.grid.map((sq, i) => i === index ? square : sq), crossword.size)
                     },
                     undo: toggleSquare(index)
                 }

@@ -1,58 +1,102 @@
 <script lang="ts">
-    import type { Clue, WhiteSquare } from "../crossword";
-    import type { CursorState } from "../cursor";
+    import { createEventDispatcher } from "svelte";
+    import cursor from "../stores/cursor";
+    import editable from "../stores/editable";
     import InputGridSquare from "./InputGridSquare.svelte";
 
-    export let clue: Clue;
     export let number: number;
-    export let currentNumber: number | null;
-    export let cursor: CursorState;
-    export let squares: WhiteSquare[];
     export let editor = false;
-    export let focused = false;
+    export let focusable = false;
+
+    const dispatch = createEventDispatcher<{
+        updateValue: [number, string];
+        clearValue: number;
+    }>();
+
+    const crossword = editable;
     let squareInputMode = false;
+    let indices: number[];
+
+    $: currentNumber = $crossword.grid[$cursor.index][$cursor.orientation];
 
     $: if (number !== currentNumber && squareInputMode) {
         squareInputMode = false;
     }
+
+    $: indices = $crossword.answerMap[$cursor.orientation].get(number) ?? [];
+    $: clue = $crossword.clues[$cursor.orientation].get(number) ?? null;
+
+    function handleUpdateValue(event: CustomEvent<[number, string]>) {
+        dispatch("updateValue", event.detail);
+
+        const index = indices.findIndex((i) => i === $cursor.index);
+
+        if (index >= indices.length - 1) return;
+
+        cursor.setIndex($crossword.size, indices[index + 1]);
+    }
+
+    function handleClearValue(event: CustomEvent<number>) {
+        dispatch("clearValue", event.detail);
+
+        const index = indices.findIndex((i) => i === $cursor.index);
+
+        if (index < 1) return;
+
+        cursor.setIndex($crossword.size, indices[index - 1]);
+    }
+
+    function handleSelectSquare(event: CustomEvent<number>) {
+        if (event.detail === $cursor.index) return;
+
+        cursor.setIndex($crossword.size, event.detail);
+    }
 </script>
 
-<div
-    class="border p-2"
-    class:bg-blue-100={number === currentNumber && focused}
-    class:bg-blue-50={number === currentNumber && !focused}
->
-    <div class="font-semibold">{number}</div>
-    {#if editor}
-        <textarea
-            class="my-4 h-8 w-full border border-black"
-            value={clue.text}
-            on:focus={() => {
-                squareInputMode = false;
-            }}
-        ></textarea>
-    {:else}
-        <div>{clue.text}</div>
-    {/if}
-    <ul
-        class="flex border border-black w-fit bg-white"
-        on:focusin={() => {
-            squareInputMode = true;
-        }}
+{#if clue}
+    <div
+        class="border p-2"
+        class:bg-blue-100={number === currentNumber && focusable}
+        class:bg-blue-50={number === currentNumber && !focusable}
     >
-        {#each squares as square}
-            <li class="w-8">
-                <InputGridSquare
-                    {square}
-                    highlighted={false}
-                    focusable={focused && squareInputMode}
-                    disabled={false}
-                    selected={square.index === cursor.index}
-                    displayNumber={false}
-                    on:updateValue
-                    on:selectSquare
-                />
-            </li>
-        {/each}
-    </ul>
-</div>
+        <div class="font-semibold">{number}</div>
+        {#if editor}
+            <textarea
+                class="my-4 h-8 w-full border border-black"
+                value={clue.text}
+                on:focus={() => {
+                    squareInputMode = false;
+                }}
+            ></textarea>
+        {:else}
+            <div>{clue.text}</div>
+        {/if}
+        <div
+            role="grid"
+            class="flex border border-black w-fit bg-white"
+            on:focusin={() => {
+                squareInputMode = true;
+            }}
+        >
+            {#each indices.map((i) => $crossword.grid[i]) as square, colindex}
+                {#if square && !square.isBlack}
+                    <div class="w-8">
+                        <InputGridSquare
+                            {square}
+                            highlighted={false}
+                            focusable={focusable && squareInputMode}
+                            disabled={false}
+                            selected={square.index === $cursor.index}
+                            ariaRowindex={undefined}
+                            ariaColindex={colindex}
+                            displayNumber={false}
+                            on:updateValue={handleUpdateValue}
+                            on:selectSquare={handleSelectSquare}
+                            on:clearValue={handleClearValue}
+                        />
+                    </div>
+                {/if}
+            {/each}
+        </div>
+    </div>
+{/if}

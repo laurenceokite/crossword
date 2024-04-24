@@ -1,20 +1,19 @@
 <script lang="ts">
-    import type { Crossword } from "../crossword";
     import InputGrid from "./InputGrid.svelte";
     import editable from "../stores/editable";
-    import { updateValue } from "../editor/commands/update-value";
     import GridDesigner from "./GridDesigner.svelte";
-    import { EditMode } from "../editor/types";
     import { onMount } from "svelte";
-    import { toggleSquare } from "../editor/commands/toggle-square";
-    import { resizeGrid } from "../editor/commands/resize";
     import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../constants";
-    import Clues from "./Clues.svelte";
+    import ClueInput from "./ClueInput.svelte";
+    import { EditMode, type Crossword } from "../types";
+    import { updateValue } from "../commands/update-value";
+    import { toggleSquare } from "../commands/toggle-square";
+    import { resizeGrid } from "../commands/resize";
 
     export let init: Crossword | undefined = undefined;
 
-    const crossword = $editable;
-    let size = crossword.metadata.size;
+    const crossword = editable;
+    let size = $crossword.metadata.size;
     let editMode = EditMode.Grid;
 
     enum Section {
@@ -24,18 +23,16 @@
     }
     let focus = Section.Grid;
 
-    $: console.log(focus);
-
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
-        editable.execute(updateValue(...event.detail));
+        crossword.execute(updateValue(...event.detail));
     }
 
     function handleClearValue(event: CustomEvent<number>) {
-        editable.execute(updateValue(event.detail, ""));
+        crossword.execute(updateValue(event.detail, ""));
     }
 
     function handleToggleSquare(event: CustomEvent<number>) {
-        editable.execute(toggleSquare(event.detail));
+        crossword.execute(toggleSquare(event.detail));
     }
 
     function toggleGridMode() {
@@ -58,7 +55,7 @@
             return;
         }
 
-        if (newSize !== crossword.metadata.size) {
+        if (newSize !== $crossword.metadata.size) {
             editable.execute(resizeGrid(newSize));
         }
     }
@@ -74,15 +71,15 @@
 
     onMount(() => {
         if (init) {
-            editable.load(init);
+            crossword.load(init);
         }
         window.addEventListener("keydown", handleKeydown);
     });
 </script>
 
-<div class="container flex w-full max-h-screen pt-24">
+<div class="@container flex w-full max-h-screen pt-24">
     <section
-        class="fixed h-24 top-0 left-0 right-0"
+        class="absolute h-24 top-0 left-0 right-0"
         on:focusin={() => {
             if (focus === Section.Control) return;
             focus = Section.Control;
@@ -106,23 +103,25 @@
                 value={EditMode.Insert}
             />
         </fieldset>
-        {#key $editable.history}
+        {#key $crossword.history}
             <button
                 type="button"
-                on:click={() => editable.undo(crossword.history)}
-                disabled={!crossword.history.undo.length}
+                on:click={() => editable.undo($crossword.history)}
+                disabled={!$crossword.history.undo.length}
             >
                 Undo
             </button>
 
             <button
                 type="button"
-                on:click={() => editable.redo(crossword.history)}
-                disabled={!$editable.history.redo.length}
+                on:click={() => editable.redo($crossword.history)}
+                disabled={!$crossword.history.redo.length}
             >
                 Redo
             </button>
         {/key}
+
+        <div></div>
     </section>
 
     <section
@@ -137,7 +136,7 @@
             on:clearValue={handleClearValue}
             focused={focus === Section.Grid}
             editor={true}
-            disabled={editMode !== EditMode.Insert}
+            {editMode}
         >
             {#if editMode === EditMode.Grid}
                 <GridDesigner
@@ -156,10 +155,32 @@
             editMode = EditMode.Insert;
         }}
     >
-        <Clues
-            editor={true}
-            focused={focus === Section.Clues}
-            on:updateValue={handleUpdateValue}
-        />
+        <div class="flex max-h-full">
+            <ul class="overflow-auto">
+                {#each [...$crossword.clues.across.keys()] as number}
+                    <li>
+                        <ClueInput
+                            {number}
+                            editor={true}
+                            focusable={focus === Section.Clues}
+                            on:updateValue={handleUpdateValue}
+                        />
+                    </li>
+                {/each}
+            </ul>
+            <ul class="overflow-auto">
+                {#each [...$crossword.clues.down.keys()] as number}
+                    <li>
+                        <ClueInput
+                            {number}
+                            editor={true}
+                            focusable={focus === Section.Clues}
+                            on:updateValue={handleUpdateValue}
+                            on:clearValue={handleClearValue}
+                        />
+                    </li>
+                {/each}
+            </ul>
+        </div>
     </section>
 </div>

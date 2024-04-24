@@ -1,5 +1,4 @@
-import type { Crossword } from "../../crossword";
-import { type CommandExecutionSuccess, type EditorCommand } from "../command";
+import type { CommandExecutionSuccess, Crossword, EditorCommand } from "../types";
 
 export function undo(command: EditorCommand, execute: (c: Crossword) => CommandExecutionSuccess): EditorCommand {
     return {

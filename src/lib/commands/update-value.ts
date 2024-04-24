@@ -1,7 +1,4 @@
-import type { CommandExecutionResult, EditorCommand } from "../command";
-import type { Grid, Square, WhiteSquare } from "../../crossword";
-import { CommandExecutionResultType, EditorCommandType } from "../command";
-import type { Crossword } from "../../crossword";
+import { CommandExecutionResultType, EditorCommandType, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
 import { undo } from "./undo";
 
 export function updateValue(index: number, value: string): EditorCommand {

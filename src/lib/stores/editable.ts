@@ -1,19 +1,15 @@
 import { writable } from "svelte/store";
-import type { ClueSet, Crossword } from "../crossword";
-import { CommandExecutionResultType, EditorCommandType, type EditorCommand } from "../editor/command";
-import type { EditableCrossword } from "../editor/types";
-import { newGrid, numberSquares } from "../editor/grid";
-import { createAnswerMap } from "./answer";
-import type { AnswerMap } from "./types";
+import { CommandExecutionResultType, EditorCommandType, type AnswerMap, type ClueSet, type Crossword, type EditableCrossword, type EditorCommand, type Grid } from "../types";
+import { newGrid, numberSquares } from "../grid";
 
 const { subscribe, set, update } = writable<EditableCrossword>(newEditable());
 
 function load(crossword: Crossword) {
     if (
-        !crossword.metadata.size
-        || crossword.metadata.size != crossword.grid.length
+        !crossword.size
+        || crossword.size != crossword.grid.length
     ) {
-        crossword.metadata.size = Math.ceil(Math.sqrt(crossword.grid.length));
+        crossword.size = Math.ceil(Math.sqrt(crossword.grid.length));
     }
 
     set({
@@ -22,7 +18,7 @@ function load(crossword: Crossword) {
             undo: [],
             redo: []
         },
-        answerMap: createAnswerMap(crossword.grid)
+        answerMap: buildAnswerMap(crossword.grid)
     })
 }
 
@@ -49,7 +45,7 @@ function execute(command: EditorCommand, redo: EditorCommand[] = [], undo?: Edit
 
         const { commandType } = command;
         const renumber = commandType() === EditorCommandType.ToggleSquare || commandType() === EditorCommandType.ResizeGrid;
-        const answerMap = renumber ? createAnswerMap(crossword.grid) : editable.answerMap;
+        const answerMap = renumber ? buildAnswerMap(crossword.grid) : editable.answerMap;
         const clues = renumber ? buildClues(answerMap, crossword.clues) : crossword.clues;
 
         return {
@@ -114,14 +110,42 @@ function buildClues(answerMap: AnswerMap, clues?: ClueSet): ClueSet {
     return updatedClues;
 }
 
+export function buildAnswerMap(grid: Grid): AnswerMap {
+    const across = new Map<number, number[]>();
+    const down = new Map<number, number[]>();
+
+    for (let i = 0; i < grid.length; i++) {
+        const square = grid[i];
+        if (square.isBlack) {
+            continue;
+        }
+
+        if (across.has(square.across)) {
+            across.get(square.across)?.push(i);
+        } else {
+            across.set(square.across, [i]);
+        }
+
+        if (down.has(square.down)) {
+            down.get(square.down)?.push(i);
+        } else {
+            down.set(square.down, [i]);
+        }
+    }
+
+    return {
+        across,
+        down,
+    }
+};
+
+
 function newEditable() {
-    const metadata = {
-        size: 15,
-    };
+    const size = 15
 
-    const grid = numberSquares(newGrid(15), metadata.size);
+    const grid = numberSquares(newGrid(15), size);
 
-    const answerMap = createAnswerMap(grid);
+    const answerMap = buildAnswerMap(grid);
     const clues = buildClues(answerMap);
 
     const history = {
@@ -131,7 +155,7 @@ function newEditable() {
 
     return {
         grid,
-        metadata,
+        size,
         clues,
         answerMap,
         history
