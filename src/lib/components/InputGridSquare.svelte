@@ -82,7 +82,7 @@
                 bind:this={inputElement}
                 type="text"
                 maxlength="6"
-                class="bg-transparent text-center font-semibold w-full focus:ring-2 ring-inset"
+                class="bg-transparent text-center font-semibold w-full h-full focus:ring-2 ring-inset"
                 {disabled}
                 tabindex="-1"
             />

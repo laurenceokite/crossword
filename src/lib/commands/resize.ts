@@ -66,13 +66,7 @@ export function resizeGrid(size: number): EditorCommand {
                 grid,
                 size
             },
-            undo: undo(resizeGrid(size), () => {
-                return {
-                    type: CommandExecutionResultType.Success,
-                    crossword: JSON.parse(previousState) as Crossword,
-                    undo: resizeGrid(size)
-                }
-            })
+            undo: undo(resizeGrid(size), () => JSON.parse(previousState) as Crossword)
         }
     }
 

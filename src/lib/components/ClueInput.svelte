@@ -3,8 +3,10 @@
     import cursor from "../stores/cursor";
     import editable from "../stores/editable";
     import InputGridSquare from "./InputGridSquare.svelte";
+    import type { Orientation } from "../types";
 
     export let number: number;
+    export let orientation: Orientation;
     export let editor = false;
     export let focusable = false;
 
@@ -23,8 +25,8 @@
         squareInputMode = false;
     }
 
-    $: indices = $crossword.answerMap[$cursor.orientation].get(number) ?? [];
-    $: clue = $crossword.clues[$cursor.orientation].get(number) ?? null;
+    $: indices = $crossword.answerMap[orientation].get(number) ?? [];
+    $: clue = $crossword.clues[orientation].get(number) ?? null;
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         dispatch("updateValue", event.detail);

@@ -1,6 +1,12 @@
 import type { BlackSquare, WhiteSquare, Grid } from "./types";
 
-export function numberSquares(grid: Grid, size: number, result: Grid = [], index: number = 0, number: number = 0): Grid {
+export function numberSquares(
+    grid: Grid,
+    size: number,
+    result: Grid = [],
+    index: number = 0,
+    number: number = 0
+): Grid {
     if (index < 0 || index >= grid.length) {
         return result;
     }

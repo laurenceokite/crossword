@@ -1,171 +1,205 @@
 import { writable } from "svelte/store";
-import { CommandExecutionResultType, EditorCommandType, type AnswerMap, type ClueSet, type Crossword, type EditableCrossword, type EditorCommand, type Grid } from "../types";
+import { EditorCommandType, Orientation, type ClueAssociationKey, type ClueMap, type CommandExecutionResult, type Crossword, type EditableCrossword, type EditorCommand, type EditorHistory, type Grid } from "../types";
+import { CommandExecutionResultType } from "../types";
 import { newGrid, numberSquares } from "../grid";
 
-const { subscribe, set, update } = writable<EditableCrossword>(newEditable());
+const INIT_GRID_SIZE = 15;
 
-function load(crossword: Crossword) {
-    if (
-        !crossword.size
-        || crossword.size != crossword.grid.length
-    ) {
-        crossword.size = Math.ceil(Math.sqrt(crossword.grid.length));
+const { subscribe, set, update } = writable<Crossword>(newCrossword());
+const history: EditorHistory = {
+    undo: [],
+    redo: []
+};
+
+
+function newCrossword(): Crossword {
+    const grid = numberSquares(newGrid(INIT_GRID_SIZE), INIT_GRID_SIZE);
+    const { across, down } = setClues(grid);
+
+    return {
+        grid,
+        across,
+        down,
+        size: INIT_GRID_SIZE,
     }
-
-    set({
-        ...crossword,
-        history: {
-            undo: [],
-            redo: []
-        },
-        answerMap: buildAnswerMap(crossword.grid)
-    })
 }
 
-function execute(command: EditorCommand, redo: EditorCommand[] = [], undo?: EditorCommand[]) {
+function setClues(grid: Grid): { [K in Orientation]: ClueMap } {
+    const clues = {
+        across: {} as ClueMap,
+        down: {} as ClueMap
+    };
+
+    for (let i = 0; i < newGrid.length; i++) {
+        if (grid[i].isBlack) {
+            continue;
+        }
+        const { across, down } = grid[i];
+
+        const newClue = () => {
+            return {
+                text: "",
+                associations: [],
+                squares: []
+            }
+        }
+
+        if (across && !clues.across[across]) {
+            clues.across[across] = newClue();
+        }
+
+        if (down && !clues.down[down]) {
+            clues.down[down] = newClue();
+        }
+
+        if (across) clues.across[across].squares.push(i);
+        if (down) clues.down[down].squares.push(i);
+    }
+
+    return clues;
+}
+
+
+function renumber() {
     update(editable => {
-        const result = command.execute(editable);
-
-        if (result.type === CommandExecutionResultType.NoOperation) {
-            return editable;
+        const grid = numberSquares(editable.grid, editable.size);
+        const gridMap = mapGrid(grid);
+        const newClues = setClues(grid);
+        const oldClues = {
+            across: editable.across,
+            down: editable.down
         }
 
-        if (!undo) {
-            undo = editable.history.undo;
-            undo.push(result.undo);
-        } else {
-            redo.push(result.undo);
-        }
-
-        while (undo.length > 100) {
-            undo.shift();
-        }
-
-        const { crossword } = result;
-
-        const { commandType } = command;
-        const renumber = commandType() === EditorCommandType.ToggleSquare || commandType() === EditorCommandType.ResizeGrid;
-        const answerMap = renumber ? buildAnswerMap(crossword.grid) : editable.answerMap;
-        const clues = renumber ? buildClues(answerMap, crossword.clues) : crossword.clues;
+        const { across, down } = interpolateClues(newClues, oldClues, gridMap);
 
         return {
-            ...result.crossword,
-            answerMap,
-            clues,
-            history: { undo, redo }
+            ...editable,
+            grid,
+            across,
+            down
         }
-    })
+    });
 }
 
-type EditorHistory = {
-    undo: EditorCommand[],
-    redo: EditorCommand[]
-};
-
-function _undo(history: EditorHistory) {
-    const { undo, redo } = history;
-    const command = undo.pop();
-
-    if (command) {
-        execute(command, redo, undo);
-    }
-}
-
-function _redo(history: EditorHistory) {
-    const { redo } = history;
-    const command = redo.pop();
-
-    if (command) {
-        execute(command, redo);
-    }
-}
-
-function newClue() {
-    return { text: "", associations: [] }
-};
-
-function buildClues(answerMap: AnswerMap, clues?: ClueSet): ClueSet {
-    const { across, down } = answerMap
-    const updatedClues: ClueSet = {
-        across: new Map(),
-        down: new Map()
-    }
-
-    across.forEach((_, number) => {
-        if (clues && clues.across.has(number)) {
-            updatedClues.across.set(number, clues.across.get(number) ?? newClue());
-        } else {
-            updatedClues.across.set(number, newClue());
-        }
-    })
-
-    down.forEach((_, number) => {
-        if (clues && clues.down.has(number)) {
-            updatedClues.down.set(number, clues.across.get(number) ?? newClue());
-        } else {
-            updatedClues.down.set(number, newClue());
-        }
-    })
-
-    return updatedClues;
-}
-
-export function buildAnswerMap(grid: Grid): AnswerMap {
+function mapGrid(grid: Grid): Map<string, ClueAssociationKey> {
+    const result = new Map<string, ClueAssociationKey>();
     const across = new Map<number, number[]>();
     const down = new Map<number, number[]>();
 
     for (let i = 0; i < grid.length; i++) {
         const square = grid[i];
+
         if (square.isBlack) {
             continue;
         }
 
-        if (across.has(square.across)) {
-            across.get(square.across)?.push(i);
-        } else {
-            across.set(square.across, [i]);
+        if (square.across !== null) {
+            if (!across.has(square.across)) {
+                across.set(square.across, []);
+            }
+            across.get(square.across)!.push(i);
         }
 
-        if (down.has(square.down)) {
-            down.get(square.down)?.push(i);
-        } else {
-            down.set(square.down, [i]);
+        if (square.down !== null) {
+            if (!down.has(square.down)) {
+                down.set(square.down, []);
+            }
+            down.get(square.down)!.push(i);
         }
     }
 
-    return {
-        across,
-        down,
+    across.forEach((v, k) => { result.set(JSON.stringify(v), [Orientation.Across, k]); });
+    down.forEach((v, k) => { result.set(JSON.stringify(v), [Orientation.Down, k]); });
+
+    return result;
+}
+
+function interpolateClues(
+    newClues: { [K in Orientation]: ClueMap },
+    oldClues: { [K in Orientation]: ClueMap },
+    gridMap: Map<string, ClueAssociationKey>
+): { [K in Orientation]: ClueMap } {
+    const { across, down } = oldClues;
+    const clues = { ...newClues };
+
+    [...Object.values(across), ...Object.values(down)].forEach(clue => {
+        const key = !!clue.text ? JSON.stringify(clue.squares) : null;
+
+        if (key && gridMap.has(key)) {
+            const value = gridMap.get(key);
+
+            if (value) {
+                const [orientation, number] = value;
+                clues[orientation][number] = clue;
+            }
+        }
+    });
+
+    return clues;
+}
+
+function load(crossword: Crossword) {
+    set(crossword);
+}
+
+function _execute(command: EditorCommand): CommandExecutionResult | null {
+    let result = null;
+
+    update(editable => {
+        result = command.execute(editable);
+        return result.crossword;
+    });
+
+    return result;
+}
+
+function execute(command: EditorCommand): CommandExecutionResultType {
+    const result = _execute(command);
+
+    if (result?.type === CommandExecutionResultType.Success) {
+        history.undo.push(result.undo);
     }
-};
 
+    return result?.type ?? CommandExecutionResultType.NoOperation;
+}
 
-function newEditable() {
-    const size = 15
+function undo() {
+    const command = history.undo.pop();
 
-    const grid = numberSquares(newGrid(15), size);
-
-    const answerMap = buildAnswerMap(grid);
-    const clues = buildClues(answerMap);
-
-    const history = {
-        undo: [],
-        redo: []
-    };
-
-    return {
-        grid,
-        size,
-        clues,
-        answerMap,
-        history
+    if (!command) {
+        return;
     }
+
+    const result = _execute(command);
+
+    if (result?.type === CommandExecutionResultType.Success) {
+        history.redo.push(result.undo);
+    }
+
+    return result?.type ?? CommandExecutionResultType.NoOperation;
+}
+
+function redo() {
+    const command = history.redo.pop();
+
+    if (!command) {
+        return CommandExecutionResultType.NoOperation;
+    }
+
+    const result = _execute(command);
+
+    if (result?.type === CommandExecutionResultType.Success) {
+        history.undo.push(result.undo);
+    }
+
+    return result?.type ?? CommandExecutionResultType.NoOperation;
 }
 
 export default {
     subscribe,
     load,
-    undo: _undo,
-    redo: _redo,
-    execute
-};
+    undo,
+    redo,
+    execute,
+    renumber
+} as EditableCrossword;

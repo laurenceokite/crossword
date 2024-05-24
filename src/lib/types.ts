@@ -1,7 +1,10 @@
+import type { Readable } from "svelte/store";
+
 export type Crossword = {
     grid: Grid;
     size: number;
-    clues: ClueSet;
+    across: ClueMap;
+    down: ClueMap;
     title?: string;
     theme?: string;
 }
@@ -10,15 +13,13 @@ export type Grid = Square[];
 
 export type Clue = {
     text: string;
+    squares: number[];
     associations: ClueAssociationKey[];
 }
 
-export type ClueAssociationKey = [Orientation, number]
+export type ClueMap = Record<number, Clue>
 
-export type ClueSet = {
-    across: Map<number, Clue>;
-    down: Map<number, Clue>;
-}
+export type ClueAssociationKey = [Orientation, number];
 
 export enum SquareDecoration { }
 
@@ -46,15 +47,21 @@ export type BlackSquare = {
     rebus: false;
 }
 
-export type EditableCrossword = Crossword & {
-    history: { undo: EditorCommand[], redo: EditorCommand[] };
-    answerMap: AnswerMap;
+export type EditableCrossword = Readable<Crossword> & {
+    execute: (command: EditorCommand) => CommandExecutionResultType;
+    undo: () => CommandExecutionResultType;
+    redo: () => CommandExecutionResultType;
+    renumber: () => void;
 }
 
-export interface AnswerMap {
-    across: Map<number, number[]>;
-    down: Map<number, number[]>;
-};
+export type PlayableCrossword = EditableCrossword & {
+    key: string;
+}
+
+export type EditorHistory = {
+    undo: EditorCommand[],
+    redo: EditorCommand[]
+}
 
 export interface EditorCommand {
     displayName: () => string;
@@ -62,7 +69,7 @@ export interface EditorCommand {
     execute: (crossword: Crossword) => CommandExecutionResult;
 }
 
-export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation;
+export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation | CommandExecutionNoHistory;
 
 export type CommandExecutionSuccess = {
     type: CommandExecutionResultType.Success;
@@ -75,17 +82,24 @@ export type CommandExecutionNoOperation = {
     crossword: Crossword;
 }
 
+export type CommandExecutionNoHistory = {
+    type: CommandExecutionResultType.NoHistory;
+    crossword: Crossword;
+}
+
 export enum CommandExecutionResultType {
     NoOperation,
+    NoHistory,
     Success
 }
 
 export enum EditorCommandType {
     ResizeGrid,
     ToggleSquare,
-    UpdateValue
+    UpdateValue,
+    UpdateClue,
+    SetAssociation
 }
-
 
 export enum EditMode {
     Insert,

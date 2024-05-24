@@ -40,6 +40,7 @@
             const number = getCurrentNumber(square, orientation);
 
             if (
+                previous &&
                 previous.number === number &&
                 orientation === previous.orientation
             ) {
@@ -131,7 +132,7 @@
     }
 
     function handleSelectSquare(event: CustomEvent<number>) {
-        cursor.setIndex($crossword.metadata.size, event.detail);
+        cursor.setIndex($crossword.size, event.detail);
     }
 
     function isHighlighted(square: WhiteSquare) {
@@ -149,35 +150,43 @@
     }>();
 </script>
 
-<div
-    class="input-grid grid h-max w-screen @3xl:w-max aspect-square relative border-2 border-gray-950"
-    style="--grid-size: {$crossword.size}"
-    role="grid"
-    tabindex="0"
-    on:keydown={handleKeydown}
->
-    {#each $crossword.grid as square, index}
-        {#key $cursor}
-            <InputGridSquare
-                on:selectSquare={handleSelectSquare}
-                on:updateValue={handleUpdateValue}
-                on:clearValue={handleClearValue}
-                square={square.isBlack ? null : square}
-                selected={index === $cursor.index}
-                highlighted={!square.isBlack && isHighlighted(square)}
-                focusable={focused && editMode === EditMode.Insert}
-                disabled={editMode === EditMode.Grid}
-                ariaColindex={getXIndex($crossword.size, index)}
-                ariaRowindex={getYIndex($crossword.size, index)}
-            />
-        {/key}
-    {/each}
-    <slot />
-</div>
+<div>
+    <div
+        class="input-grid grid h-max w-screen @3xl:w-max aspect-square relative border-2 border-gray-950"
+        style="--grid-size: {$crossword.size}"
+        role="grid"
+        tabindex="0"
+        on:keydown={handleKeydown}
+    >
+        {#each $crossword.grid as square, index}
+            {#key $cursor}
+                <InputGridSquare
+                    on:selectSquare={handleSelectSquare}
+                    on:updateValue={handleUpdateValue}
+                    on:clearValue={handleClearValue}
+                    square={square.isBlack ? null : square}
+                    selected={index === $cursor.index}
+                    highlighted={!square.isBlack && isHighlighted(square)}
+                    focusable={focused && editMode === EditMode.Insert}
+                    disabled={editMode === EditMode.Grid}
+                    ariaColindex={getXIndex($crossword.size, index)}
+                    ariaRowindex={getYIndex($crossword.size, index)}
+                />
+            {/key}
+        {/each}
+        <slot />
+    </div>
 
-{#if $current.number}
-    <ClueInput editor number={$current.number} />
-{/if}
+    {#if $current.number && editMode === EditMode.Insert}
+        <ClueInput
+            {editor}
+            number={$current.number}
+            orientation={$cursor.orientation}
+        />
+    {:else}
+        <div class="h-24 bg-gray-200"></div>
+    {/if}
+</div>
 
 <style>
     .input-grid {

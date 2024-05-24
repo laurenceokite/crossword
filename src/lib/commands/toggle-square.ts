@@ -13,7 +13,6 @@ export function toggleSquare(index: number): EditorCommand {
             }
         }
 
-        // interpolate the new square into the array et the proper index using map
         const grid = crossword.grid.map((sq, i) => i === index ? newSquare(!square.isBlack) : sq);
 
         return {
@@ -24,12 +23,8 @@ export function toggleSquare(index: number): EditorCommand {
             },
             undo: undo(toggleSquare(index), (crossword: Crossword) => {
                 return {
-                    type: CommandExecutionResultType.Success,
-                    crossword: {
-                        ...crossword,
-                        grid: numberSquares(crossword.grid.map((sq, i) => i === index ? square : sq), crossword.size)
-                    },
-                    undo: toggleSquare(index)
+                    ...crossword,
+                    grid: numberSquares(crossword.grid.map((sq, i) => i === index ? square : sq), crossword.size)
                 }
             })
         }
@@ -41,4 +36,7 @@ export function toggleSquare(index: number): EditorCommand {
         execute
     }
 }
+
+
+
 
