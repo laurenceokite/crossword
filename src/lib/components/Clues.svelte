@@ -3,7 +3,7 @@
     import type { WhiteSquare } from "../crossword";
     import { Orientation } from "../cursor";
     import cursor from "../stores/cursor";
-    import editable from "../stores/editable";
+    import crossword from "../stores/editable";
     import ClueInput from "./ClueInput.svelte";
 
     export let focused = false;

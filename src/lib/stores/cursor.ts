@@ -1,4 +1,4 @@
-import { Direction, Orientation, type Crossword, type CursorState, type EditableCrossword, type WhiteSquare } from "../types";
+import { Direction, Orientation, type Clue, type ClueAssociationKey, type Crossword, type CursorState, type EditableCrossword, type WhiteSquare } from "../types";
 import { writable } from "svelte/store";
 
 const cursorStore = writable<CursorState>({
@@ -73,7 +73,7 @@ function move(
 
 function toggleOrientation() {
     cursorStore.update(cursor => {
-        const orientation = getOppositeOrientation(cursor);
+        const orientation = getOppositeOrientation(cursor.orientation);
         return {
             ...cursor,
             orientation
@@ -114,93 +114,83 @@ export function getIncrement(size: number, direction: Direction): number {
     return increment;
 }
 
-function goToNextEmptySquare(crossword: EditableCrossword) {
+function goToNextEmptySquare(crossword: Crossword) {
     cursorStore.update(cursor => {
-        let index = cursor.index;
+        let index: number | null = null;
         const { grid } = crossword;
-        const square = grid[index];
+        const number = grid[cursor.index][cursor.orientation];
 
-        if (square.isBlack) {
-            return cursor;
+        const findEmpty = (clues: [string, Clue][]): number | null => {
+            for (let i = 0; i < clues.length; i++) {
+                if (clues[i][1].squares.length) {
+                    const { squares } = clues[i][1];
+                    for (let j = 0; j < squares.length; j++) {
+                        if (grid[squares[j]].value?.trim() === "") {
+                            return squares[j];
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
-        const number = square[cursor.orientation];
-        const increment = cursor.orientation === Orientation.Down ? crossword.size : 1;
+        const clues = (orientation: Orientation) => Object.entries(crossword[orientation]);
 
-        index += increment;
-        while (grid[index] && !grid[index].isBlack && (grid[index] as WhiteSquare)[cursor.orientation] === number) {
-            if (!(grid[index] as WhiteSquare).value) {
+        if (number) {
+            const word = crossword[cursor.orientation][number]?.squares;
+            let restWord: number[] | null = null;
+
+            if (word && word.length) {
+                restWord = word.filter(i => i > cursor.index);
+            }
+
+            if (restWord && restWord.length) {
+                for (let i = 0; i < restWord.length; i++) {
+                    if (grid[restWord[i]].value?.trim() === "") {
+                        return {
+                            ...cursor,
+                            index: restWord[i]
+                        }
+                    }
+                }
+            }
+
+            const restClues = Object.entries(crossword[cursor.orientation]).filter(([n]) => parseInt(n) > number);
+            index = findEmpty(restClues);
+
+            if (index !== null) {
                 return {
                     ...cursor,
                     index
                 }
             }
-            index += increment;
-        }
 
-        const word = crossword.answerMap[cursor.orientation].get(number);
-        const start = word ? word[0] : null;
+            index = findEmpty(clues(getOppositeOrientation(cursor.orientation)));
 
-        if (start !== null && start !== cursor.index) {
-            index = start;
-
-            while (grid[index] && !grid[index].isBlack && index < cursor.index) {
-                if (!(grid[index] as WhiteSquare)) {
-                    return {
-                        ...cursor,
-                        index
-                    }
-                }
-                index += increment;
-            }
-        }
-
-        if (cursor.orientation === Orientation.Across) {
-            for (index; index < grid.length; index++) {
-                if (grid[index] && !grid[index].isBlack && !(grid[index] as WhiteSquare).value) {
-                    return {
-                        ...cursor,
-                        index
-                    }
-                }
-            }
-
-            for (index = 0; index < cursor.index; index++) {
-                if (grid[index] && !grid[index].isBlack && !(grid[index] as WhiteSquare).value) {
-                    return {
-                        ...cursor,
-                        index
-                    }
-                }
-            }
-
-            return cursor;
-        }
-
-        let answerIter = crossword.answerMap.down.entries();
-
-        while (answerIter.next().value[0] !== number);
-
-        let answer: [number, number[]] | undefined = answerIter.next().value;
-
-        while (answer) {
-            answer[1].forEach(i => {
-                if (grid[i] && !grid[i].isBlack && !(grid[i] as WhiteSquare).value) {
-                    return {
-                        ...cursor,
-                        index: i
-                    }
-                }
-            })
-            answer = answerIter.next().value;
-        }
-
-        for (index = 0; index < cursor.index; index++) {
-            if (grid[index] && !grid[index].isBlack && !(grid[index] as WhiteSquare).value) {
+            if (index !== null) {
                 return {
                     ...cursor,
                     index
                 }
+            }
+        }
+
+        index = findEmpty(clues(cursor.orientation));
+
+        if (index !== null) {
+            return {
+                ...cursor,
+                index
+            }
+        }
+
+        index = findEmpty(clues(getOppositeOrientation(cursor.orientation)));
+
+        if (index !== null) {
+            return {
+                ...cursor,
+                index
             }
         }
 
@@ -208,8 +198,8 @@ function goToNextEmptySquare(crossword: EditableCrossword) {
     });
 }
 
-export function getOppositeOrientation(cursor: CursorState) {
-    return cursor.orientation === Orientation.Across ? Orientation.Down : Orientation.Across;
+export function getOppositeOrientation(orientation: Orientation) {
+    return orientation === Orientation.Across ? Orientation.Down : Orientation.Across;
 }
 
 export function forward(orientation: Orientation): Direction {

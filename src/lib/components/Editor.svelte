@@ -52,7 +52,7 @@
         }
     }
 
-    function undo()
+    function undo();
 
     function toggleGridMode() {
         if (editMode === EditMode.Grid) {
@@ -106,24 +106,21 @@
                 value={EditMode.Insert}
             />
         </fieldset>
-        {#key $crossword.history}
-            <button
-                type="button"
-                on:click={() =>}
-                disabled={!$crossword.history.undo.length}
-            >
-                Undo
-            </button>
+        <button
+            type="button"
+            on:click={() => crossword.undo()}
+            disabled={!crossword.history().undo.length}
+        >
+            Undo
+        </button>
 
-            <button
-                type="button"
-                on:click={() =>}
-                disabled={!$crossword.history.redo.length}
-            >
-                Redo
-            </button>
-        {/key}
-
+        <button
+            type="button"
+            on:click={() => crossword.redo()}
+            disabled={!crossword.history().redo.length}
+        >
+            Redo
+        </button>
         <div></div>
     </section>
 
@@ -160,7 +157,7 @@
     >
         <div class="flex max-h-full">
             <ul class="overflow-auto">
-                {#each [...$crossword.across.keys()] as number}
+                {#each Object.keys($crossword.across) as number}
                     <li>
                         <ClueInput
                             {number}
@@ -174,7 +171,7 @@
                 {/each}
             </ul>
             <ul class="overflow-auto">
-                {#each [...$crossword.down.keys()] as number}
+                {#each Object.keys($crossword.down) as number}
                     <li>
                         <ClueInput
                             {number}

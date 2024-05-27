@@ -30,7 +30,7 @@ function setClues(grid: Grid): { [K in Orientation]: ClueMap } {
         down: {} as ClueMap
     };
 
-    for (let i = 0; i < newGrid.length; i++) {
+    for (let i = 0; i < grid.length; i++) {
         if (grid[i].isBlack) {
             continue;
         }
@@ -201,5 +201,6 @@ export default {
     undo,
     redo,
     execute,
-    renumber
+    renumber,
+    history: () => Object.freeze(history)
 } as EditableCrossword;

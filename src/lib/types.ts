@@ -48,10 +48,12 @@ export type BlackSquare = {
 }
 
 export type EditableCrossword = Readable<Crossword> & {
+    load: (crossword: Crossword) => void;
     execute: (command: EditorCommand) => CommandExecutionResultType;
     undo: () => CommandExecutionResultType;
     redo: () => CommandExecutionResultType;
     renumber: () => void;
+    history: () => Readonly<EditorHistory>
 }
 
 export type PlayableCrossword = EditableCrossword & {

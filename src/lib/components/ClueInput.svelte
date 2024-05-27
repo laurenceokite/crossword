@@ -25,8 +25,8 @@
         squareInputMode = false;
     }
 
-    $: indices = $crossword.answerMap[orientation].get(number) ?? [];
-    $: clue = $crossword.clues[orientation].get(number) ?? null;
+    $: indices = $crossword[orientation][number].squares ?? [];
+    $: clue = $crossword[orientation][number] ?? null;
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         dispatch("updateValue", event.detail);
