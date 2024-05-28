@@ -1,6 +1,29 @@
-import type { BlackSquare, WhiteSquare, Grid } from "./types";
+import { type BlackSquare, type WhiteSquare, type Grid, type ClueMap, Orientation, type Crossword, type ClueAssociationKey } from "./types";
 
-export function numberSquares(
+export function renumber(crossword: Crossword): { crossword: Crossword, lostClues: { [K in Orientation]: ClueMap } } {
+    const grid = numberGrid(crossword.grid, crossword.size);
+    const gridMap = mapGrid(grid);
+    const newClues = setClues(grid);
+    const oldClues = {
+        across: crossword.across,
+        down: crossword.down
+    }
+
+    const [clues, lostClues] = interpolateClues(newClues, oldClues, gridMap);
+    const { across, down } = clues
+
+    return {
+        crossword: {
+            ...crossword,
+            grid,
+            across,
+            down
+        },
+        lostClues
+    };
+}
+
+export function numberGrid(
     grid: Grid,
     size: number,
     result: Grid = [],
@@ -36,7 +59,7 @@ export function numberSquares(
         });
     }
 
-    return numberSquares(grid, size, result, index + 1, number);
+    return numberGrid(grid, size, result, index + 1, number);
 }
 
 export function newSquare<T extends boolean>(isBlack: T): T extends true ? BlackSquare : WhiteSquare {
@@ -64,6 +87,131 @@ export function newSquare<T extends boolean>(isBlack: T): T extends true ? Black
         } as T extends true ? BlackSquare : WhiteSquare;
     }
 }
+
+export function setClues(grid: Grid): { [K in Orientation]: ClueMap } {
+    const clues = {
+        across: {} as ClueMap,
+        down: {} as ClueMap
+    };
+
+    for (let i = 0; i < grid.length; i++) {
+        if (grid[i].isBlack) {
+            continue;
+        }
+        const { across, down } = grid[i];
+
+        const newClue = () => {
+            return {
+                text: "",
+                associations: [],
+                squares: []
+            }
+        }
+
+        if (across && !clues.across[across]) {
+            clues.across[across] = newClue();
+        }
+
+        if (down && !clues.down[down]) {
+            clues.down[down] = newClue();
+        }
+
+        if (across) clues.across[across].squares.push(i);
+        if (down) clues.down[down].squares.push(i);
+    }
+
+    return clues;
+}
+
+
+function mapGrid(grid: Grid): Map<string, ClueAssociationKey> {
+    const result = new Map<string, ClueAssociationKey>();
+    const across = new Map<number, number[]>();
+    const down = new Map<number, number[]>();
+
+    for (let i = 0; i < grid.length; i++) {
+        const square = grid[i];
+
+        if (square.isBlack) {
+            continue;
+        }
+
+        if (square.across !== null) {
+            if (!across.has(square.across)) {
+                across.set(square.across, []);
+            }
+            across.get(square.across)!.push(i);
+        }
+
+        if (square.down !== null) {
+            if (!down.has(square.down)) {
+                down.set(square.down, []);
+            }
+            down.get(square.down)!.push(i);
+        }
+    }
+
+    across.forEach((v, k) => { result.set(JSON.stringify(v), [Orientation.Across, k]); });
+    down.forEach((v, k) => { result.set(JSON.stringify(v), [Orientation.Down, k]); });
+
+    return result;
+}
+
+function interpolateClues(
+    newClues: { [K in Orientation]: ClueMap },
+    oldClues: { [K in Orientation]: ClueMap },
+    gridMap: Map<string, ClueAssociationKey>
+): [{ [K in Orientation]: ClueMap }, { [K in Orientation]: ClueMap }] {
+    const { across, down } = oldClues;
+    const clues = { ...newClues };
+    const lost = {
+        across: {} as ClueMap,
+        down: {} as ClueMap
+    };
+
+    Object.entries(across).forEach(([clueNumber, clue]) => {
+        const key = !!clue.text ? JSON.stringify(clue.squares) : null;
+
+        if (!key) return;
+
+        if (gridMap.has(key)) {
+            const cluePosition = gridMap.get(key);
+
+            if (cluePosition) {
+                const [_, number] = cluePosition;
+                clues.across[number] = clue;
+            }
+        } else {
+            const cn = parseInt(clueNumber);
+            if (!cn) return;
+
+            lost.across[cn] = clue;
+        }
+    });
+
+    Object.entries(down).forEach(([clueNumber, clue]) => {
+        const key = !!clue.text ? JSON.stringify(clue.squares) : null;
+
+        if (!key) return;
+
+        if (gridMap.has(key)) {
+            const cluePosition = gridMap.get(key);
+
+            if (cluePosition) {
+                const [_, number] = cluePosition;
+                clues.down[number] = clue;
+            }
+        } else {
+            const cn = parseInt(clueNumber);
+            if (!cn) return;
+
+            lost.down[cn] = clue;
+        }
+    });
+
+    return [clues, lost];
+}
+
 
 export function newGrid(size: number) {
     return new Array(size ** 2).fill(null).map(() => newSquare(false));

@@ -1,4 +1,5 @@
 import { CommandExecutionResultType, EditorCommandType, Orientation, type Clue, type ClueMap, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
+import { undo } from "./undo";
 
 export function updateClue(orientation: Orientation, number: number, value: string): EditorCommand {
 
@@ -17,19 +18,25 @@ export function updateClue(orientation: Orientation, number: number, value: stri
             text: value
         };
 
-        const update = (state: Clue): ClueMap => {
+        const update = (state: Clue, map: ClueMap): ClueMap => {
             return {
-                ...crossword[orientation],
+                ...map,
                 [number]: state
             }
         };
 
         return {
-            type: CommandExecutionResultType.NoHistory,
+            type: CommandExecutionResultType.Success,
             crossword: {
                 ...crossword,
-                [orientation]: update(newState)
+                [orientation]: update(newState, crossword[orientation])
             },
+            undo: undo(updateClue(orientation, number, value), (cw: Crossword) => {
+                return {
+                    ...cw,
+                    [orientation]: update(previousState, cw[orientation])
+                }
+            })
         }
     }
 

@@ -1,4 +1,4 @@
-import { newSquare, numberSquares } from "../grid";
+import { newSquare, renumber } from "../grid";
 import { CommandExecutionResultType, EditorCommandType, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
 import { undo } from "./undo";
 
@@ -14,18 +14,16 @@ export function toggleSquare(index: number): EditorCommand {
         }
 
         const grid = crossword.grid.map((sq, i) => i === index ? newSquare(!square.isBlack) : sq);
+        const renumberResult = renumber({ ...crossword, grid });
 
         return {
             type: CommandExecutionResultType.Success,
-            crossword: {
-                ...crossword,
-                grid: numberSquares(grid, crossword.size)
-            },
-            undo: undo(toggleSquare(index), (crossword: Crossword) => {
-                return {
-                    ...crossword,
-                    grid: numberSquares(crossword.grid.map((sq, i) => i === index ? square : sq), crossword.size)
-                }
+            crossword: renumberResult.crossword,
+            undo: undo(toggleSquare(index), (cw: Crossword) => {
+                const across = { ...cw.across, ...renumberResult.lostClues.across };
+                const down = { ...cw.down, ...renumberResult.lostClues.down };
+
+                return renumber({ ...cw, grid: cw.grid.map((sq, i) => i === index ? square : sq) }).crossword;
             })
         }
     }

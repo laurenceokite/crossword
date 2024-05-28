@@ -1,6 +1,6 @@
 import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../constants";
 import { CommandExecutionResultType, EditorCommandType, type CommandExecutionResult, type Crossword, type EditorCommand, type Square } from "../types";
-import { newGrid, numberSquares, newSquare } from "../grid";
+import { newGrid, numberGrid, newSquare, renumber } from "../grid";
 import { undo } from "./undo";
 
 export function resizeGrid(size: number): EditorCommand {
@@ -23,7 +23,7 @@ export function resizeGrid(size: number): EditorCommand {
         }
 
         if (!crossword.grid.length) {
-            const grid = numberSquares(newGrid(targetLength), size);
+            const grid = numberGrid(newGrid(targetLength), size);
             return {
                 type: CommandExecutionResultType.NoOperation,
                 crossword: {
@@ -57,13 +57,12 @@ export function resizeGrid(size: number): EditorCommand {
             }
         }
 
-        const grid = numberSquares(accumulator, size)
+        const renumberResult = renumber({ ...crossword, grid: accumulator });
 
         return {
             type: CommandExecutionResultType.Success,
             crossword: {
-                ...crossword,
-                grid,
+                ...renumberResult.crossword,
                 size
             },
             undo: undo(resizeGrid(size), () => JSON.parse(previousState) as Crossword)

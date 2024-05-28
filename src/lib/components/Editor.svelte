@@ -48,15 +48,11 @@
 
         if (newSize !== $crossword.size) {
             crossword.execute(resizeGrid(newSize));
-            crossword.renumber();
         }
     }
 
-    function undo();
-
     function toggleGridMode() {
         if (editMode === EditMode.Grid) {
-            crossword.renumber();
             editMode = EditMode.Insert;
         } else {
             editMode = EditMode.Grid;

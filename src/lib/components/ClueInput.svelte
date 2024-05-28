@@ -25,7 +25,7 @@
         squareInputMode = false;
     }
 
-    $: indices = $crossword[orientation][number].squares ?? [];
+    $: indices = $crossword[orientation][number]?.squares ?? [];
     $: clue = $crossword[orientation][number] ?? null;
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {

@@ -52,7 +52,6 @@ export type EditableCrossword = Readable<Crossword> & {
     execute: (command: EditorCommand) => CommandExecutionResultType;
     undo: () => CommandExecutionResultType;
     redo: () => CommandExecutionResultType;
-    renumber: () => void;
     history: () => Readonly<EditorHistory>
 }
 
@@ -71,7 +70,7 @@ export interface EditorCommand {
     execute: (crossword: Crossword) => CommandExecutionResult;
 }
 
-export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation | CommandExecutionNoHistory;
+export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionNoOperation;
 
 export type CommandExecutionSuccess = {
     type: CommandExecutionResultType.Success;
@@ -81,11 +80,6 @@ export type CommandExecutionSuccess = {
 
 export type CommandExecutionNoOperation = {
     type: CommandExecutionResultType.NoOperation;
-    crossword: Crossword;
-}
-
-export type CommandExecutionNoHistory = {
-    type: CommandExecutionResultType.NoHistory;
     crossword: Crossword;
 }
 

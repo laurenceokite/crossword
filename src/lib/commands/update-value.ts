@@ -32,14 +32,10 @@ export function updateValue(index: number, value: string): EditorCommand {
             },
             undo: undo(
                 updateValue(index, value),
-                (crossword: Crossword) => {
+                (cw: Crossword) => {
                     return {
-                        type: CommandExecutionResultType.Success,
-                        crossword: {
-                            ...crossword,
-                            grid: crossword.grid.map((sq, i) => i === index ? previousState : sq)
-                        },
-                        undo: updateValue(index, value)
+                        ...cw,
+                        grid: cw.grid.map((sq, i) => i === index ? previousState : sq)
                     }
                 }
             )
