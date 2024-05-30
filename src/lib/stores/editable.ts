@@ -1,7 +1,7 @@
 import { writable } from "svelte/store";
 import { EditorCommandType, Orientation, type ClueAssociationKey, type ClueMap, type CommandExecutionResult, type Crossword, type EditableCrossword, type EditorCommand, type EditorHistory, type Grid } from "../types";
 import { CommandExecutionResultType } from "../types";
-import { newGrid, numberGrid } from "../grid";
+import { newGrid, numberGrid, setClues } from "../grid";
 
 const INIT_GRID_SIZE = 15;
 

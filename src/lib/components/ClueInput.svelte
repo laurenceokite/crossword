@@ -11,6 +11,7 @@
     export let focusable = false;
 
     const dispatch = createEventDispatcher<{
+        updateClue: [Orientation, number, string];
         updateValue: [number, string];
         clearValue: number;
     }>();
@@ -27,6 +28,16 @@
 
     $: indices = $crossword[orientation][number]?.squares ?? [];
     $: clue = $crossword[orientation][number] ?? null;
+
+    function handleUpdateClue(event: FocusEvent) {
+        if (!event.target) return;
+
+        dispatch("updateClue", [
+            orientation,
+            number,
+            (event.target as HTMLInputElement).value,
+        ]);
+    }
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         dispatch("updateValue", event.detail);
@@ -69,6 +80,7 @@
                 on:focus={() => {
                     squareInputMode = false;
                 }}
+                on:blur={handleUpdateClue}
             ></textarea>
         {:else}
             <div>{clue.text}</div>
