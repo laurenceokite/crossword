@@ -5,16 +5,12 @@
     import { onMount } from "svelte";
     import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../constants";
     import ClueInput from "./ClueInput.svelte";
-    import {
-        EditMode,
-        type Crossword,
-        Orientation,
-        type ClueAssociationKey,
-    } from "../types";
+    import { EditMode, type Crossword, Orientation } from "../types";
     import { updateValue } from "../commands/update-value";
     import { toggleSquare } from "../commands/toggle-square";
     import { resizeGrid } from "../commands/resize";
     import { updateClue } from "../commands/update-clue";
+    import ClueList from "./ClueList.svelte";
 
     export let init: Crossword | undefined = undefined;
 
@@ -163,37 +159,18 @@
             editMode = EditMode.Insert;
         }}
     >
-        <div class="flex max-h-full">
-            <ul class="overflow-auto">
-                {#each Object.keys($crossword.across).map( (n) => parseInt(n), ) as number}
-                    <li>
-                        <ClueInput
-                            {number}
-                            editor={true}
-                            focusable={focus === Section.Clues}
-                            orientation={Orientation.Across}
-                            on:updateClue={handleUpdateClue}
-                            on:updateValue={handleUpdateValue}
-                            on:clearValue={handleClearValue}
-                        />
-                    </li>
-                {/each}
-            </ul>
-            <ul class="overflow-auto">
-                {#each Object.keys($crossword.down).map( (n) => parseInt(n), ) as number}
-                    <li>
-                        <ClueInput
-                            {number}
-                            editor={true}
-                            focusable={focus === Section.Clues}
-                            orientation={Orientation.Down}
-                            on:updateClue={handleUpdateClue}
-                            on:updateValue={handleUpdateValue}
-                            on:clearValue={handleClearValue}
-                        />
-                    </li>
-                {/each}
-            </ul>
-        </div>
+        {#each Object.values(Orientation) as orientation}
+            <ClueList
+                numbers={Object.keys($crossword[orientation]).map((n) =>
+                    parseInt(n),
+                )}
+                editor={true}
+                focusable={focus === Section.Clues}
+                {orientation}
+                on:updateClue={handleUpdateClue}
+                on:updateValue={handleUpdateValue}
+                on:clearValue={handleClearValue}
+            />
+        {/each}
     </section>
 </div>

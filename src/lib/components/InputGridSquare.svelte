@@ -11,7 +11,7 @@
     export let selected: boolean;
     export let displayNumber = true;
 
-    let inputElement: HTMLInputElement | null = null;
+    export let inputElement: HTMLInputElement | null = null;
     let hasFocus = false;
 
     const dispatch = createEventDispatcher<{
@@ -78,6 +78,7 @@
                 on:click={() => handleClick()}
                 on:input={handleInput}
                 on:keydown={handleKeydown}
+                on:keydown
                 value={square.value}
                 bind:this={inputElement}
                 type="text"
