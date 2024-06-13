@@ -4,6 +4,9 @@
     import cursor, { getXIndex, getYIndex } from "../stores/cursor";
 
     export let focusable = true;
+    export const focus = () => {
+        inputElements[$cursor.index]?.focus();
+    };
 
     const dispatch = createEventDispatcher<{
         toggleSquare: number;
@@ -11,11 +14,7 @@
 
     let inputElements: HTMLInputElement[] = [];
 
-    $: if (
-        focusable &&
-        inputElements.length &&
-        inputElements.length > $cursor.index
-    ) {
+    $: if (focusable && inputElements.length && inputElements[$cursor.index]) {
         inputElements[$cursor.index].focus();
     }
 

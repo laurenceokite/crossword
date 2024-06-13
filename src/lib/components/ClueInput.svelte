@@ -32,7 +32,8 @@
     let focused = false;
     let squareInputElements: HTMLInputElement[] = [];
 
-    $: currentNumber = $crossword.grid[$cursor.index][$cursor.orientation];
+    $: currentNumber =
+        $crossword.grid[$cursor.index]?.[$cursor.orientation] ?? -1;
     $: selected =
         number === currentNumber && orientation === $cursor.orientation;
     $: indices = $crossword[orientation][number]?.squares ?? [];
@@ -76,6 +77,8 @@
     }
 
     function handleSelectSquare(event: CustomEvent<number>) {
+        squareInputMode = true;
+        console.log(event.detail);
         if (event.detail === $cursor.index) return;
 
         cursor.setIndex($crossword.size, event.detail);
@@ -170,6 +173,7 @@
             on:focusin={() => {
                 focused = true;
                 squareInputMode = true;
+                console.log("hey wtf m8");
             }}
         >
             {#each indices.map((i) => $crossword.grid[i]) as square, index}

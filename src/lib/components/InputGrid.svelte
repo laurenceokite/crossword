@@ -24,7 +24,8 @@
 
     const crossword = editor ? editable : editable;
 
-    $: selectedSquare = $crossword.grid[$cursor.index];
+    let selectedSquare: Square | null = null;
+    $: selectedSquare = $crossword.grid[$cursor.index] ?? null;
 
     const current = writable<{
         orientation: Orientation;
@@ -136,11 +137,12 @@
     }
 
     function isHighlighted(square: WhiteSquare) {
-        if (selectedSquare.isBlack) {
+        if (selectedSquare?.isBlack) {
             return false;
         }
         return (
-            selectedSquare[$cursor.orientation] === square[$cursor.orientation]
+            selectedSquare?.[$cursor.orientation] ===
+            square[$cursor.orientation]
         );
     }
 

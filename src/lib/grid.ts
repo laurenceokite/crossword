@@ -1,6 +1,7 @@
 import { type BlackSquare, type WhiteSquare, type Grid, type ClueMap, Orientation, type Crossword, type ClueAssociationKey } from "./types";
 
 export function renumber(crossword: Crossword): { crossword: Crossword, lostClues: { [K in Orientation]: ClueMap } } {
+    console.log(crossword.size)
     const grid = numberGrid(crossword.grid, crossword.size);
     const gridMap = mapGrid(grid);
     const newClues = setClues(grid);

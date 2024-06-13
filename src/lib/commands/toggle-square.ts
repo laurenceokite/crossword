@@ -2,7 +2,7 @@ import { newSquare, renumber } from "../grid";
 import { CommandExecutionResultType, EditorCommandType, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
 import { undo } from "./undo";
 
-export function toggleSquare(index: number): EditorCommand {
+export function toggleSquare(index: number, symmetry: boolean = false): EditorCommand {
     function execute(crossword: Crossword): CommandExecutionResult {
         const square = crossword.grid[index] ?? null;
 
@@ -13,17 +13,26 @@ export function toggleSquare(index: number): EditorCommand {
             }
         }
 
-        const grid = crossword.grid.map((sq, i) => i === index ? newSquare(!square.isBlack) : sq);
+        const counterpart = symmetry ? crossword.size ** 2 - (index + 1) : -1;
+
+        const grid = crossword.grid.map((sq, i) => (i === index || i === counterpart) ? newSquare(!square.isBlack) : sq);
         const renumberResult = renumber({ ...crossword, grid });
 
         return {
             type: CommandExecutionResultType.Success,
             crossword: renumberResult.crossword,
-            undo: undo(toggleSquare(index), (cw: Crossword) => {
+            undo: undo(toggleSquare(index, symmetry), (cw: Crossword) => {
                 const across = { ...cw.across, ...renumberResult.lostClues.across };
                 const down = { ...cw.down, ...renumberResult.lostClues.down };
 
-                return renumber({ ...cw, grid: cw.grid.map((sq, i) => i === index ? square : sq) }).crossword;
+                const result = renumber({ ...cw, grid: cw.grid.map((sq, i) => i === index ? square : sq) });
+
+                return {
+                    ...result.crossword,
+                    ...across,
+                    ...down,
+                }
+
             })
         }
     }

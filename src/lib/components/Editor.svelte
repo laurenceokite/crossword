@@ -11,14 +11,20 @@
     import { resizeGrid } from "../commands/resize";
     import { updateClue } from "../commands/update-clue";
     import ClueList from "./ClueList.svelte";
+    import { writable } from "svelte/store";
 
     export let init: Crossword | undefined = undefined;
 
-    let size = $crossword.size;
+    const size = writable($crossword.size);
+    $: size.set($crossword.size);
+
     let editMode = EditMode.Grid;
+    let autoSymmetry = true;
+    let focusGridDesigner: () => void;
 
     enum Section {
         Grid,
+        MiniClue,
         Clues,
         Control,
     }
@@ -33,7 +39,7 @@
     }
 
     function handleToggleSquare(event: CustomEvent<number>) {
-        crossword.execute(toggleSquare(event.detail));
+        crossword.execute(toggleSquare(event.detail, autoSymmetry));
     }
 
     function handleUpdateClue(
@@ -43,15 +49,14 @@
     }
 
     function resize(newSize: number) {
-        if (!newSize)
-            if (newSize > MAX_GRID_SIZE) {
-                size = MAX_GRID_SIZE;
-                return;
-            }
+        if (!newSize || newSize === $crossword.size) return;
+
+        if (newSize > MAX_GRID_SIZE) {
+            newSize = MAX_GRID_SIZE;
+        }
 
         if (newSize < MIN_GRID_SIZE) {
-            size = MIN_GRID_SIZE;
-            return;
+            newSize = MIN_GRID_SIZE;
         }
 
         if (newSize !== $crossword.size) {
@@ -64,6 +69,7 @@
             editMode = EditMode.Insert;
         } else {
             editMode = EditMode.Grid;
+            focusGridDesigner();
         }
     }
 
@@ -125,7 +131,22 @@
         >
             Redo
         </button>
-        <div></div>
+
+        <input
+            type="checkbox"
+            id="autoSymmetryToggle"
+            bind:checked={autoSymmetry}
+        />
+        <label for="autoSymmetryToggle">Auto-Symmetry</label>
+
+        <input
+            type="number"
+            min={MIN_GRID_SIZE}
+            max={MAX_GRID_SIZE}
+            bind:value={$size}
+            on:blur={() => resize($size)}
+            on:click={() => resize($size)}
+        />
     </section>
 
     <section
@@ -146,6 +167,7 @@
                 <GridDesigner
                     on:toggleSquare={handleToggleSquare}
                     focusable={focus === Section.Grid}
+                    bind:focus={focusGridDesigner}
                 />
             {/if}
         </InputGrid>

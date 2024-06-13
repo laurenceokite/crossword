@@ -3,19 +3,19 @@ import { CommandExecutionResultType, EditorCommandType, type CommandExecutionRes
 import { newGrid, numberGrid, newSquare, renumber } from "../grid";
 import { undo } from "./undo";
 
-export function resizeGrid(size: number): EditorCommand {
+export function resizeGrid(newSize: number): EditorCommand {
     function execute(crossword: Crossword): CommandExecutionResult {
         const previousSize = crossword.size;
-        const targetLength = size ** 2;
+        const targetLength = newSize ** 2;
 
-        if (size < MIN_GRID_SIZE || size > MAX_GRID_SIZE) {
+        if (newSize < MIN_GRID_SIZE || newSize > MAX_GRID_SIZE) {
             return {
                 type: CommandExecutionResultType.NoOperation,
                 crossword
             }
         }
 
-        if (size === previousSize && crossword.grid.length === targetLength) {
+        if (newSize === previousSize && crossword.grid.length === targetLength) {
             return {
                 type: CommandExecutionResultType.NoOperation,
                 crossword
@@ -23,7 +23,7 @@ export function resizeGrid(size: number): EditorCommand {
         }
 
         if (!crossword.grid.length) {
-            const grid = numberGrid(newGrid(targetLength), size);
+            const grid = numberGrid(newGrid(targetLength), newSize);
             return {
                 type: CommandExecutionResultType.NoOperation,
                 crossword: {
@@ -35,37 +35,32 @@ export function resizeGrid(size: number): EditorCommand {
 
         const previousState = JSON.stringify(crossword);
 
-        const accumulator: Square[] = [];
-        const minSize = Math.min(previousSize, size);
+        const _newGrid: Square[] = [];
+        const minSize = Math.min(previousSize, newSize);
 
-        for (let i = 0; i < minSize; i++) {
-            for (let j = 0; j < minSize; j++) {
-                const sourceIndex = i * previousSize + j;
-                const targetIndex = i * size + j;
+        for (let row = 0; row < minSize; row++) {
+            for (let col = 0; col < minSize; col++) {
+                const sourceIndex = row * previousSize + col;
+                const targetIndex = row * newSize + col;
 
-                if (sourceIndex < targetLength) {
-                    accumulator[targetIndex] = crossword.grid[sourceIndex];
-                }
+                _newGrid[targetIndex] = crossword.grid[sourceIndex];
             }
         }
 
-        if (size < previousSize) {
+        if (newSize > previousSize) {
             for (let i = 0; i < targetLength; i++) {
-                if (!accumulator[i]) {
-                    accumulator[i] = newSquare(false);
+                if (!_newGrid[i]) {
+                    _newGrid[i] = newSquare(false);
                 }
             }
         }
 
-        const renumberResult = renumber({ ...crossword, grid: accumulator });
+        const renumberResult = renumber({ ...crossword, grid: _newGrid, size: newSize });
 
         return {
             type: CommandExecutionResultType.Success,
-            crossword: {
-                ...renumberResult.crossword,
-                size
-            },
-            undo: undo(resizeGrid(size), () => JSON.parse(previousState) as Crossword)
+            crossword: renumberResult.crossword,
+            undo: undo(resizeGrid(newSize), () => JSON.parse(previousState) as Crossword)
         }
     }
 
