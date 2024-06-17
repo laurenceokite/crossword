@@ -3,8 +3,7 @@ import type { Readable } from "svelte/store";
 export type Crossword = {
     grid: Grid;
     size: number;
-    across: ClueMap;
-    down: ClueMap;
+    clues: Clue[];
     title?: string;
     theme?: string;
 }
@@ -12,14 +11,12 @@ export type Crossword = {
 export type Grid = Square[];
 
 export type Clue = {
+    orientation: Orientation;
+    number: number;
     text: string;
-    squares: number[];
-    associations: ClueAssociationKey[];
+    indices: number[];
+    associations: number[][];
 }
-
-export type ClueMap = Record<number, Clue>
-
-export type ClueAssociationKey = [Orientation, number];
 
 export enum SquareDecoration { }
 
@@ -29,8 +26,8 @@ export type WhiteSquare = {
     readonly isBlack: false;
     index: number;
     value: string;
-    across: number;
-    down: number;
+    [Orientation.Across]: number;
+    [Orientation.Down]: number;
     number: number | null;
     decoration: SquareDecoration | null;
     rebus: boolean;
@@ -38,13 +35,6 @@ export type WhiteSquare = {
 
 export type BlackSquare = {
     readonly isBlack: true;
-    index: number;
-    value: null;
-    across: null;
-    down: null;
-    number: null;
-    decoration: null;
-    rebus: false;
 }
 
 export type EditableCrossword = Readable<Crossword> & {
@@ -110,8 +100,8 @@ export enum Direction {
 }
 
 export enum Orientation {
-    Across = "across",
-    Down = "down"
+    Across,
+    Down
 }
 
 export interface CursorState {
