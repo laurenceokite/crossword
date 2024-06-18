@@ -1,10 +1,10 @@
-import { CommandExecutionResultType, EditorCommandType, Orientation, type Clue, type ClueMap, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
+import { CommandExecutionResultType, EditorCommandType, Orientation, type Clue, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
 import { undo } from "./undo";
 
-export function updateClue(orientation: Orientation, number: number, value: string): EditorCommand {
+export function updateClueText(orientation: Orientation, number: number, value: string): EditorCommand {
 
     function execute(crossword: Crossword): CommandExecutionResult {
-        let previousState = crossword[orientation][number];
+        let previousState = crossword.clues.find(clue => clue.number === number);
 
         if (!previousState) {
             return {
@@ -18,23 +18,18 @@ export function updateClue(orientation: Orientation, number: number, value: stri
             text: value
         };
 
-        const update = (state: Clue, map: ClueMap): ClueMap => {
-            return {
-                ...map,
-                [number]: state
-            }
-        };
+        const update = (state: Clue, clues: Clue[]): Clue[] => clues.map(clue => clue.number === number ? state : clue);
 
         return {
             type: CommandExecutionResultType.Success,
             crossword: {
                 ...crossword,
-                [orientation]: update(newState, crossword[orientation])
+                clues: update(newState, crossword.clues)
             },
-            undo: undo(updateClue(orientation, number, value), (cw: Crossword) => {
+            undo: undo(updateClueText(orientation, number, value), (cw: Crossword) => {
                 return {
                     ...cw,
-                    [orientation]: update(previousState, cw[orientation])
+                    clues: update(previousState, cw.clues)
                 }
             })
         }

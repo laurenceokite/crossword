@@ -1,22 +1,25 @@
+import type { Record, Map, List, Set } from "immutable";
 import type { Readable } from "svelte/store";
 
 export type Crossword = {
     grid: Grid;
     size: number;
-    clues: Clue[];
+    clues: ClueMap;
     title?: string;
     theme?: string;
 }
 
-export type Grid = Square[];
+export type ClueMap = Map<Set<number>, Clue>;
 
-export type Clue = {
+export type Grid = List<Square>;
+
+export type Clue = Record<{
     orientation: Orientation;
     number: number;
     text: string;
-    indices: number[];
-    associations: number[][];
-}
+    indices: Set<number>;
+    associations: List<Set<number>>;
+}>
 
 export enum SquareDecoration { }
 
@@ -24,7 +27,6 @@ export type Square = WhiteSquare | BlackSquare;
 
 export type WhiteSquare = {
     readonly isBlack: false;
-    index: number;
     value: string;
     [Orientation.Across]: number;
     [Orientation.Down]: number;
@@ -50,8 +52,8 @@ export type PlayableCrossword = EditableCrossword & {
 }
 
 export type EditorHistory = {
-    undo: EditorCommand[],
-    redo: EditorCommand[]
+    undo: List<EditorCommand>,
+    redo: List<EditorCommand>
 }
 
 export interface EditorCommand {

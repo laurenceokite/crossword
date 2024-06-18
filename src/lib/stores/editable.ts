@@ -1,7 +1,7 @@
 import { writable } from "svelte/store";
-import { EditorCommandType, Orientation, type ClueAssociationKey, type ClueMap, type CommandExecutionResult, type Crossword, type EditableCrossword, type EditorCommand, type EditorHistory, type Grid } from "../types";
+import { type CommandExecutionResult, type Crossword, type EditableCrossword, type EditorCommand, type EditorHistory } from "../types";
 import { CommandExecutionResultType } from "../types";
-import { newGrid, numberGrid, setClues } from "../grid";
+import { buildClues, newGrid, numberGrid } from "../grid";
 
 const INIT_GRID_SIZE = 15;
 
@@ -14,12 +14,11 @@ const history: EditorHistory = {
 
 function newCrossword(): Crossword {
     const grid = numberGrid(newGrid(INIT_GRID_SIZE), INIT_GRID_SIZE);
-    const { across, down } = setClues(grid);
+    const clues = buildClues(grid);
 
     return {
         grid,
-        across,
-        down,
+        clues,
         size: INIT_GRID_SIZE,
     }
 }
@@ -88,5 +87,5 @@ export default {
     undo,
     redo,
     execute,
-    history: () => Object.freeze(history)
+    history: () => history
 } as EditableCrossword;

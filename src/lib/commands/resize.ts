@@ -55,11 +55,11 @@ export function resizeGrid(newSize: number): EditorCommand {
             }
         }
 
-        const renumberResult = renumber({ ...crossword, grid: _newGrid, size: newSize });
+        const [cw] = renumber({ ...crossword, grid: _newGrid, size: newSize });
 
         return {
             type: CommandExecutionResultType.Success,
-            crossword: renumberResult.crossword,
+            crossword: cw,
             undo: undo(resizeGrid(newSize), () => JSON.parse(previousState) as Crossword)
         }
     }

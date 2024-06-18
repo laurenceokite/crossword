@@ -13,24 +13,30 @@ export function toggleSquare(index: number, symmetry: boolean = false): EditorCo
             }
         }
 
-        const counterpart = symmetry ? crossword.size ** 2 - (index + 1) : -1;
+        const counterpart = symmetry ? crossword.grid.length - (index + 1) : null;
+        const previousState = {
+            [index]: square,
+            ...(() => {
+                if (counterpart !== null) {
+                    return { [counterpart]: crossword.grid[counterpart] ?? null }
+                }
+            })(),
+        };
 
         const grid = crossword.grid.map((sq, i) => (i === index || i === counterpart) ? newSquare(!square.isBlack) : sq);
-        const renumberResult = renumber({ ...crossword, grid });
+        const [updatedCrossword, lostClues] = renumber({ ...crossword, grid });
 
         return {
             type: CommandExecutionResultType.Success,
-            crossword: renumberResult.crossword,
+            crossword: updatedCrossword,
             undo: undo(toggleSquare(index, symmetry), (cw: Crossword) => {
-                const across = { ...cw.across, ...renumberResult.lostClues.across };
-                const down = { ...cw.down, ...renumberResult.lostClues.down };
+                const clues = [...crossword.clues, ...lostClues];
 
-                const result = renumber({ ...cw, grid: cw.grid.map((sq, i) => i === index ? square : sq) });
+                const result = renumber({ ...cw, grid: cw.grid.map((sq, i) => previousState[i] ? previousState[i] : sq) });
 
                 return {
-                    ...result.crossword,
-                    ...across,
-                    ...down,
+                    ...result[0],
+                    clues,
                 }
 
             })

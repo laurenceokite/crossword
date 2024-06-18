@@ -1,4 +1,5 @@
-import { type BlackSquare, type WhiteSquare, type Grid, Orientation, type Crossword, type Clue, type Square } from "./types";
+import { Collection, List, Map, Record, Set, merge, mergeWith } from "immutable";
+import { type BlackSquare, type WhiteSquare, type Grid, Orientation, type Crossword, type Clue, type Square, type ClueMap } from "./types";
 
 export function renumber(crossword: Crossword): [crossword: Crossword, lostClues: Clue[]] {
     return interpolateGrid(crossword, numberGrid(crossword.grid, crossword.size));
@@ -10,8 +11,8 @@ export function numberGrid(grid: Grid, size: number): Grid {
     return grid.map((square, index) => {
         if (square.isBlack) return newSquare(true);
 
-        const leftSquare = grid[index - 1] ?? null;
-        const upSquare = grid[index - size] ?? null;
+        const leftSquare = grid.get(index - 1) ?? null;
+        const upSquare = grid.get(index - size) ?? null;
 
         const newAcross = !leftSquare || leftSquare.isBlack;
         const newDown = !upSquare || upSquare.isBlack;
@@ -33,7 +34,6 @@ export function numberGrid(grid: Grid, size: number): Grid {
 export function newSquare(isBlack: boolean): Square {
     return isBlack ? { isBlack } : {
         isBlack,
-        index: 0,
         value: "",
         [Orientation.Across]: 0,
         [Orientation.Down]: 0,
@@ -43,98 +43,47 @@ export function newSquare(isBlack: boolean): Square {
     };
 }
 
-export function buildClues(grid: Grid): Clue[] {
-    const newClue = (orientation: Orientation, number: number): Clue => {
-        return {
-            orientation,
-            number,
-            text: "",
-            associations: [],
-            indices: []
-        }
-    }
-
-    const clues = grid.reduce((map, square, index) => {
-        if (square.isBlack) {
-            return map;
-        }
-
-        [Orientation.Across, Orientation.Down].forEach(orientation => {
-            const number = square[orientation];
-            const key = `${orientation}:${number}`;
-
-            if (!map.has(key)) {
-                map.set(key, newClue(number, orientation));
-            }
-
-            map.get(key)?.indices.push(index);
-        });
-
-        return map;
-    }, new Map<string, Clue>());
-
-    return Object.values(clues);
+export function newClue(number: number, orientation: Orientation): Clue {
+    return Record({
+        orientation,
+        number,
+        text: "",
+        associations: List<Set<number>>(),
+        indices: Set<number>()
+    })();
 }
 
-export function interpolateGrid(crossword: Crossword, grid: Grid): [result: Crossword, lostClues: Clue[]] {
-    const newGridSize = Math.sqrt(grid.length);
-    const sizeDelta = newGridSize - crossword.size;
-    const oldClues = new Map(crossword.clues.map(c => [`${c.number}:${c.orientation}`, c]));
-    const keys = new Set<string>();
+export function buildClues(grid: Grid): ClueMap {
+    const build = (orientation: Orientation): ClueMap => grid
+        .map(s => s.isBlack ? undefined : s[orientation])
+        .reduce((map, number, index) => {
+            if (number === undefined) return map;
 
-    const adjustIndex = (n: number) => {
-        if (!sizeDelta) return n;
-        return Math.floor(n / crossword.size) * sizeDelta + n;
-    };
+            const key = List([number, orientation]);
 
-    const compare = (i: number, n: number, o: Orientation) => {
-        if (!crossword.grid[i] || crossword.grid[i].isBlack) {
-            return false;
-        }
+            const value = map.get(key, newClue(number, orientation));
+            const indices = value.get('indices').add(index);
 
-        return (crossword.grid[i] as WhiteSquare)[o] === n;
-    }
+            return map.set(key, value.set('indices', indices));
+        }, Map<List<number>, Clue>())
+        .mapKeys((_, v) => v.get('indices'));
 
-    const clues = buildClues(grid).map((clue) => {
-        const firstSquare = crossword.grid[adjustIndex(clue.indices[0])];
+    return build(Orientation.Across).merge(build(Orientation.Down));
+}
 
-        if (!firstSquare || firstSquare.isBlack) {
-            return clue;
-        }
+export function updateClues(grid: Grid, oldClues: ClueMap): [result: ClueMap, lostClues: ClueMap] {
+    const newClues = buildClues(grid);
+    const [retainedClues, lostClues] = oldClues.partition((_, k) => newClues.has(k));
 
-        if (clue.indices.every(i => compare(i, firstSquare[clue.orientation], clue.orientation))) {
-            const key = `${clue.number}:${clue.orientation}`;
+    const updateAssociations = (clue: Clue) => clue
+        .set('associations', clue.get('associations')
+            .filter(k => newClues.has(k)));
 
-            if (oldClues.has(key)) {
-                keys.add(key);
-                const oldClue = oldClues.get(key);
-
-                const associations = oldClue?.associations.map(assoc =>
-                    assoc.map(a => adjustIndex(a))
-                ).filter(assoc => {
-                    if (!assoc.length || grid[assoc[0]] || grid[assoc[0]].isBlack) {
-                        return false;
-                    }
-                    const number = (grid[assoc[0]] as WhiteSquare)[clue.orientation];
-
-                    return assoc.every(i => grid[i] && !grid[i].isBlack && (grid[i] as WhiteSquare)[clue.orientation] === number);
-                }) ?? [];
-
-                return {
-                    ...clue,
-                    ...oldClue,
-                    associations,
-                    number: clue.number,
-                    orientation: clue.orientation
-                }
-            }
-
-        }
-
-        return clue;
-    });
-
-    return [{ ...crossword, grid: grid, clues }, Object.entries(oldClues).filter(([key]) => !keys.has(key)).map(([_, v]) => v)];
+    return [
+        newClues
+            .mergeWith((nClue, rClue) => rClue.set('number', nClue.get('number')), retainedClues.map(updateAssociations)),
+        lostClues
+    ]
 }
 
 export function newGrid(size: number) {

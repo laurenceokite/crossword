@@ -1,4 +1,4 @@
-import { Direction, Orientation, type Clue, type ClueAssociationKey, type Crossword, type CursorState, type EditableCrossword, type WhiteSquare } from "../types";
+import { Direction, Orientation, type Clue, type Crossword, type CursorState, type EditableCrossword, type Square, type WhiteSquare } from "../types";
 import { writable } from "svelte/store";
 
 const cursorStore = writable<CursorState>({
@@ -116,86 +116,52 @@ export function getIncrement(size: number, direction: Direction): number {
 
 function goToNextEmptySquare(crossword: Crossword) {
     cursorStore.update(cursor => {
-        let index: number | null = null;
-        const { grid } = crossword;
-        const number = grid[cursor.index][cursor.orientation];
+        const { clues, size } = crossword;
+        const currentSquare = crossword.grid[cursor.index];
+        const emptySquare = (square: Square): boolean => !square.isBlack && square.value.trim() === "";
+        const rotate = (array: any[], i: number) => array.slice(i + 1).concat(array.slice(0, i - 1));
 
-        const findEmpty = (clues: [string, Clue][]): number | null => {
-            for (let i = 0; i < clues.length; i++) {
-                if (clues[i][1].squares.length) {
-                    const { squares } = clues[i][1];
-                    for (let j = 0; j < squares.length; j++) {
-                        if (grid[squares[j]].value?.trim() === "") {
-                            return squares[j];
-                        }
-                    }
-                }
-            }
+        if (!currentSquare.isBlack) {
+            const clue = clues.find(clue => clue.orientation === cursor.orientation && clue.number === currentSquare[cursor.orientation]);
 
-            return null;
-        }
+            if (clue) {
+                const squares = clue.indices.map(i => crossword.grid[i]).filter(s => s && !s.isBlack) as WhiteSquare[];
+                const sliceIndex = clue.indices.findIndex(i => i === cursor.index);
 
-        const clues = (orientation: Orientation) => Object.entries(crossword[orientation]);
+                if (sliceIndex === 0) {
+                    const square = squares.find(emptySquare);
 
-        if (number) {
-            const word = crossword[cursor.orientation][number]?.squares;
-            let restWord: number[] | null = null;
-
-            if (word && word.length) {
-                restWord = word.filter(i => i > cursor.index);
-            }
-
-            if (restWord && restWord.length) {
-                for (let i = 0; i < restWord.length; i++) {
-                    if (grid[restWord[i]].value?.trim() === "") {
+                    if (square) {
                         return {
                             ...cursor,
-                            index: restWord[i]
+                            index: square.index
+                        }
+                    }
+                }
+
+                if (sliceIndex > 0) {
+                    const rotatedSquares = rotate(squares, sliceIndex);
+                    const square = rotatedSquares.find(s => s.value.trim() === "");
+
+                    if (square) {
+                        return {
+                            ...cursor,
+                            index: square.index
                         }
                     }
                 }
             }
-
-            const restClues = Object.entries(crossword[cursor.orientation]).filter(([n]) => parseInt(n) > number);
-            index = findEmpty(restClues);
-
-            if (index !== null) {
-                return {
-                    ...cursor,
-                    index
-                }
-            }
-
-            index = findEmpty(clues(getOppositeOrientation(cursor.orientation)));
-
-            if (index !== null) {
-                return {
-                    ...cursor,
-                    index
-                }
-            }
         }
 
-        index = findEmpty(clues(cursor.orientation));
+        const gridByOrientation
 
-        if (index !== null) {
-            return {
-                ...cursor,
-                index
-            }
-        }
+        const grid = rotate(
+            ,
+        0
+        );
 
-        index = findEmpty(clues(getOppositeOrientation(cursor.orientation)));
 
-        if (index !== null) {
-            return {
-                ...cursor,
-                index
-            }
-        }
-
-        return cursor;
-    });
+});
 }
 
 export function getOppositeOrientation(orientation: Orientation) {
@@ -217,8 +183,14 @@ export function get2DIndices(size: number, index: number): [x: number, y: number
     ]
 }
 
-export const getXIndex = (size: number, index: number) => index % size;
-export const getYIndex = (size: number, index: number) => Math.floor(index / size);
+export const getXIndex = (size: number, index: number): number => index % size;
+export const getYIndex = (size: number, index: number): number => Math.floor(index / size);
+export function getDownByIndex(size: number, index: number): number {
+    const x = getXIndex(size, index);
+    const y = getYIndex(size, index);
+
+    return y < size - 1 ? y * size + x : x;
+}
 
 export function isAtMovementBound(size: number, direction: Direction, index: number): boolean {
     const [x, y] = get2DIndices(size, index);
