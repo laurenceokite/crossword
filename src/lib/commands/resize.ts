@@ -10,14 +10,14 @@ export function resizeGrid(newSize: number): EditorCommand {
 
         if (newSize < MIN_GRID_SIZE || newSize > MAX_GRID_SIZE) {
             return {
-                type: CommandExecutionResultType.NoOperation,
+                type: CommandExecutionResultType.Void,
                 crossword
             }
         }
 
         if (newSize === previousSize && crossword.grid.length === targetLength) {
             return {
-                type: CommandExecutionResultType.NoOperation,
+                type: CommandExecutionResultType.Void,
                 crossword
             }
         }
@@ -25,7 +25,7 @@ export function resizeGrid(newSize: number): EditorCommand {
         if (!crossword.grid.length) {
             const grid = numberGrid(newGrid(targetLength), newSize);
             return {
-                type: CommandExecutionResultType.NoOperation,
+                type: CommandExecutionResultType.Void,
                 crossword: {
                     ...crossword,
                     grid

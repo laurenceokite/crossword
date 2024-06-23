@@ -8,7 +8,7 @@ export function toggleSquare(index: number, symmetry: boolean = false): EditorCo
 
         if (!square) {
             return {
-                type: CommandExecutionResultType.NoOperation,
+                type: CommandExecutionResultType.Void,
                 crossword
             }
         }

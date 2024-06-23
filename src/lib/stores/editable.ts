@@ -1,52 +1,44 @@
-import { writable } from "svelte/store";
 import { type CommandExecutionResult, type Crossword, type EditableCrossword, type EditorCommand, type EditorHistory } from "../types";
 import { CommandExecutionResultType } from "../types";
 import { buildClues, newGrid, numberGrid } from "../grid";
+import { writable } from "./writable";
 
-const INIT_GRID_SIZE = 15;
-
-const { subscribe, set, update } = writable<Crossword>(newCrossword());
 const history: EditorHistory = {
     undo: [],
     redo: []
 };
 
+const INIT_SIZE = 15;
 
-function newCrossword(): Crossword {
-    const grid = numberGrid(newGrid(INIT_GRID_SIZE), INIT_GRID_SIZE);
-    const clues = buildClues(grid);
+const sizeStore = writable(INIT_SIZE);
+const grid = numberGrid(newGrid(INIT_SIZE), INIT_SIZE);
+const clues = buildClues(grid);
+let crossword: Crossword = { grid, clues, size: INIT_SIZE };
 
-    return {
-        grid,
-        clues,
-        size: INIT_GRID_SIZE,
-    }
-}
+const gridStore = writable(crossword.grid);
+const clueStore = writable(crossword.clues);
 
-function load(crossword: Crossword) {
-    set(crossword);
+function set(newValue: Crossword) {
+    crossword = newValue;
+    sizeStore.set(crossword.size);
+    gridStore.set(crossword.grid);
+    clueStore.set(crossword.clues);
 }
 
 function _execute(command: EditorCommand): CommandExecutionResult | null {
-    let result = null;
+    const result = command.execute(crossword);
 
-    update(editable => {
-        result = command.execute(editable);
-
-        return result.crossword;
-    });
+    set(result.crossword);
 
     return result;
 }
 
-function execute(command: EditorCommand): CommandExecutionResultType {
+function execute(command: EditorCommand) {
     const result = _execute(command);
 
     if (result?.type === CommandExecutionResultType.Success) {
         history.undo.push(result.undo);
     }
-
-    return result?.type ?? CommandExecutionResultType.NoOperation;
 }
 
 function undo() {
@@ -62,14 +54,14 @@ function undo() {
         history.redo.push(result.undo);
     }
 
-    return result?.type ?? CommandExecutionResultType.NoOperation;
+    return result?.type ?? CommandExecutionResultType.Void;
 }
 
 function redo() {
     const command = history.redo.pop();
 
     if (!command) {
-        return CommandExecutionResultType.NoOperation;
+        return CommandExecutionResultType.Void;
     }
 
     const result = _execute(command);
@@ -78,14 +70,18 @@ function redo() {
         history.undo.push(result.undo);
     }
 
-    return result?.type ?? CommandExecutionResultType.NoOperation;
+    return result?.type ?? CommandExecutionResultType.Void;
 }
 
-export default {
-    subscribe,
-    load,
+export const editable: EditableCrossword = {
+    grid: { subscribe: gridStore.subscribe },
+    clues: { subscribe: clueStore.subscribe },
+    size: { subscribe: sizeStore.subscribe },
+    title: () => crossword.title,
+    theme: () => crossword.theme,
+    load: set,
     undo,
     redo,
     execute,
     history: () => history
-} as EditableCrossword;
+};

@@ -8,7 +8,7 @@ export function updateClueText(orientation: Orientation, number: number, value: 
 
         if (!previousState) {
             return {
-                type: CommandExecutionResultType.NoOperation,
+                type: CommandExecutionResultType.Void,
                 crossword
             };
         }

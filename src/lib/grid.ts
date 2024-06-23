@@ -1,8 +1,11 @@
-import { Collection, List, Map, Record, Set, merge, mergeWith } from "immutable";
-import { type BlackSquare, type WhiteSquare, type Grid, Orientation, type Crossword, type Clue, type Square, type ClueMap } from "./types";
+import { List, Map, Record, Set } from "immutable";
+import { type Grid, Orientation, type Crossword, type Clue, type Square, type ClueMap } from "./types";
 
-export function renumber(crossword: Crossword): [crossword: Crossword, lostClues: Clue[]] {
-    return interpolateGrid(crossword, numberGrid(crossword.grid, crossword.size));
+export function renumber(crossword: Crossword): [crossword: Crossword, lostClues: ClueMap] {
+    const grid = numberGrid(crossword.grid, crossword.size);
+    const [clues, lostClues] = updateClues(grid, crossword.clues);
+
+    return [{ ...crossword, grid, clues }, lostClues]
 }
 
 export function numberGrid(grid: Grid, size: number): Grid {
@@ -43,7 +46,7 @@ export function newSquare(isBlack: boolean): Square {
     };
 }
 
-export function newClue(number: number, orientation: Orientation): Clue {
+export function newClue(number: number, orientation: Orientation): Record<Clue> {
     return Record({
         orientation,
         number,
@@ -65,7 +68,7 @@ export function buildClues(grid: Grid): ClueMap {
             const indices = value.get('indices').add(index);
 
             return map.set(key, value.set('indices', indices));
-        }, Map<List<number>, Clue>())
+        }, Map<List<number>, Record<Clue>>())
         .mapKeys((_, v) => v.get('indices'));
 
     return build(Orientation.Across).merge(build(Orientation.Down));
@@ -75,7 +78,7 @@ export function updateClues(grid: Grid, oldClues: ClueMap): [result: ClueMap, lo
     const newClues = buildClues(grid);
     const [retainedClues, lostClues] = oldClues.partition((_, k) => newClues.has(k));
 
-    const updateAssociations = (clue: Clue) => clue
+    const updateAssociations = (clue: Record<Clue>) => clue
         .set('associations', clue.get('associations')
             .filter(k => newClues.has(k)));
 
@@ -86,8 +89,8 @@ export function updateClues(grid: Grid, oldClues: ClueMap): [result: ClueMap, lo
     ]
 }
 
-export function newGrid(size: number) {
-    return new Array(size ** 2).fill(null).map(() => newSquare(false));
+export function newGrid(size: number): Grid {
+    return List(new Array(size ** 2).fill(null).map(() => newSquare(false)));
 }
 
 export function isNewRow(index: number, size: number): boolean {

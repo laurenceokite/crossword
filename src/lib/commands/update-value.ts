@@ -10,7 +10,7 @@ export function updateValue(index: number, value: string): EditorCommand {
             || square.isBlack
         ) {
             return {
-                type: CommandExecutionResultType.NoOperation,
+                type: CommandExecutionResultType.Void,
                 crossword
             }
         }
