@@ -1,4 +1,6 @@
-import { Direction, Orientation, type Clue, type Crossword, type CursorState, type EditableCrossword, type Square, type WhiteSquare } from "../types";
+import type { List } from "immutable";
+import { iterateListBy, iterateListFrom } from "../grid";
+import { Direction, Orientation, type Clue, type Crossword, type CursorState, type Square, type WhiteSquare } from "../types";
 import { writable } from "svelte/store";
 
 const cursorStore = writable<CursorState>({
@@ -17,6 +19,7 @@ function move(
             : Orientation.Across;
         const { size } = crossword;
 
+        // update orientation if not already going in direction.
         if (cursor.orientation !== targetOrientation && skipBlack) {
             return {
                 ...cursor,
@@ -24,47 +27,42 @@ function move(
             };
         }
 
+        // stop at the outer bounds.
         if (
             isAtMovementBound(size, direction, cursor.index)
         ) {
             return cursor;
         }
 
+        // get the new index.
         const increment = getIncrement(size, direction);
-        const ciel = (size ** 2) - 1;
         let index = cursor.index + increment;
 
-        if (index < 0 || index > ciel) {
-            return {
-                ...cursor,
-                orientation: targetOrientation
-            };
+        // if index is not in array do nothing.
+        // also slightly confusing but List has it's own length property called size..
+        if (index < 0 || index > crossword.grid.size - 1) {
+            return cursor;
         }
 
-        if (skipBlack && crossword.grid[index].isBlack) {
-            let position = cursor.orientation === Orientation.Across
-                ? getXIndex(size, index)
-                : getYIndex(size, index);
+        // if skip black, do the thing.
+        if (skipBlack && crossword.grid.get(index)?.isBlack) {
+            const iterator = isAcross(cursor.orientation)
+                ? iterateListFrom(crossword.grid, index)
+                : iterateListBy(crossword.grid, size, index);
 
-            for (position; position < size; position++) {
-                index += increment;
-
-                if (crossword.grid[index] && !crossword.grid[index].isBlack) {
+            for (const square of iterator) {
+                if (square && !square.isBlack) {
                     return {
-                        orientation: targetOrientation,
-                        index
-                    }
+                        ...cursor,
+                        index: square.index
+                    };
                 }
             }
-
-            return {
-                ...cursor,
-                orientation: targetOrientation
-            };
         }
 
+        // otherwise we can just send back the incremented index.
         return {
-            orientation: targetOrientation,
+            ...cursor,
             index
         };
     });
@@ -114,36 +112,30 @@ export function getIncrement(size: number, direction: Direction): number {
     return increment;
 }
 
-function goToNextEmptySquare(crossword: Crossword) {
+function goToNextEmptySquare(crossword: Crossword, number?: number) {
     cursorStore.update(cursor => {
-        const { clues, size } = crossword;
-        const currentSquare = crossword.grid[cursor.index];
-        const emptySquare = (square: Square): boolean => !square.isBlack && square.value.trim() === "";
-        const rotate = (array: any[], i: number) => array.slice(i + 1).concat(array.slice(0, i - 1));
+        const { size } = crossword;
+        const { orientation } = cursor;
+        const isEmptySquare = (square: Square): boolean => !square.isBlack && square.value.trim() === "";
+        const _isAcross = isAcross(cursor.orientation);
 
-        if (!currentSquare.isBlack) {
-            const clue = clues.find(clue => clue.orientation === cursor.orientation && clue.number === currentSquare[cursor.orientation]);
+        // if we are in a word we need to look through the word first
+        if (number) {
+            const clue = crossword.clues.find(clue => clue.get('orientation') === orientation && clue.get('number') === number);
 
             if (clue) {
-                const squares = clue.indices.map(i => crossword.grid[i]).filter(s => s && !s.isBlack) as WhiteSquare[];
-                const sliceIndex = clue.indices.findIndex(i => i === cursor.index);
+                const squares = clue.get('indices').toSeq()
+                    .map(i => crossword.grid.get(i))
+                    .filter(s => s && !s.isBlack)
+                    .toList() as List<WhiteSquare>;
 
-                if (sliceIndex === 0) {
-                    const square = squares.find(emptySquare);
+                const index = squares.findIndex(s => s.index === cursor.index);
+                const wordIter = _isAcross
+                    ? iterateListFrom(squares, index)
+                    : iterateListBy(squares, size, index);
 
-                    if (square) {
-                        return {
-                            ...cursor,
-                            index: square.index
-                        }
-                    }
-                }
-
-                if (sliceIndex > 0) {
-                    const rotatedSquares = rotate(squares, sliceIndex);
-                    const square = rotatedSquares.find(s => s.value.trim() === "");
-
-                    if (square) {
+                for (const square of wordIter) {
+                    if (square && isEmptySquare(square)) {
                         return {
                             ...cursor,
                             index: square.index
@@ -153,19 +145,29 @@ function goToNextEmptySquare(crossword: Crossword) {
             }
         }
 
-        const gridByOrientation
+        const gridIter = _isAcross
+            ? iterateListFrom(crossword.grid, cursor.index + 1)
+            : iterateListBy(crossword.grid, size, cursor.index + size);
 
-        const grid = rotate(
-            ,
-        0
-        );
+        for (const square of gridIter) {
+            if (square && isEmptySquare(square)) {
+                return {
+                    ...cursor,
+                    index: (square as WhiteSquare).index
+                }
+            }
+        }
 
-
-});
+        return cursor;
+    });
 }
 
 export function getOppositeOrientation(orientation: Orientation) {
     return orientation === Orientation.Across ? Orientation.Down : Orientation.Across;
+}
+
+export function isAcross(o: Orientation) {
+    return o === Orientation.Across;
 }
 
 export function forward(orientation: Orientation): Direction {
@@ -205,6 +207,12 @@ export function isAtMovementBound(size: number, direction: Direction, index: num
         case Direction.Down:
             return y >= size - 1;
     }
+}
+
+function getIterator(grid: Grid, orientation: Orientation, size) {
+    const iterator = isAcross(orientation)
+        ? iterateListFrom(crossword.grid, index)
+        : iterateListBy(crossword.grid, size, index);
 }
 
 export default {

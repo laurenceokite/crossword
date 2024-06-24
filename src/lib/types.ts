@@ -27,6 +27,7 @@ export type Square = WhiteSquare | BlackSquare;
 
 export type WhiteSquare = {
     readonly isBlack: false;
+    index: number;
     value: string;
     [Orientation.Across]: number;
     [Orientation.Down]: number;
@@ -45,6 +46,7 @@ export interface EditableCrossword {
     size: Readable<number>;
     title: () => string | undefined;
     theme: () => string | undefined;
+    crossword: () => Readonly<Crossword>;
 
     load: (crossword: Crossword) => void;
     execute: (command: EditorCommand) => void;
@@ -84,11 +86,6 @@ export type CommandExecutionVoid = {
 export enum CommandExecutionResultType {
     Void,
     Success
-}
-
-export enum EditMode {
-    Insert,
-    Grid
 }
 
 export enum Direction {

@@ -11,18 +11,16 @@
     export let selected: boolean;
     export let displayNumber = true;
 
-    export let inputElement: HTMLInputElement | null = null;
-    let hasFocus = false;
+    export const focus: () => void = () => {
+        inputElement?.focus();
+    };
+    let inputElement: HTMLInputElement;
 
     const dispatch = createEventDispatcher<{
         selectSquare: number;
         updateValue: [index: number, value: string];
         clearValue: number;
     }>();
-
-    $: if (focusable && selected && inputElement && !hasFocus) {
-        inputElement.focus();
-    }
 
     function handleInput(event: Event) {
         if (!square) return;

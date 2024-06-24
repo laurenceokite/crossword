@@ -1,4 +1,4 @@
-import { List, Map, Record, Set } from "immutable";
+import { type Collection, List, Map, Record, Set } from "immutable";
 import { type Grid, Orientation, type Crossword, type Clue, type Square, type ClueMap } from "./types";
 
 export function renumber(crossword: Crossword): [crossword: Crossword, lostClues: ClueMap] {
@@ -38,6 +38,7 @@ export function newSquare(isBlack: boolean): Square {
     return isBlack ? { isBlack } : {
         isBlack,
         value: "",
+        index: 0,
         [Orientation.Across]: 0,
         [Orientation.Down]: 0,
         number: null,
@@ -99,4 +100,18 @@ export function isNewRow(index: number, size: number): boolean {
 
 export function isNewColumn(index: number, size: number) {
     return index < size
+}
+
+export function* iterateListBy<T>(list: List<T>, interval: number, start: number = 0): Generator<T | null, void, void> {
+    let index = start;
+    for (let i = 0; i < list.size; i++) {
+        yield list.get(Math.floor(index % length)) ?? null;
+        index += interval;
+    }
+}
+
+export function* iterateListFrom<T>(list: List<T>, start: number): Generator<T | null, void, void> {
+    for (let i = start; i < list.size; i++) {
+        yield list.get(Math.floor(i % length)) ?? null;
+    }
 }

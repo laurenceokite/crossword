@@ -1,24 +1,23 @@
 <script lang="ts">
     import InputGrid from "./InputGrid.svelte";
-    import crossword from "../stores/editable";
+    import { editable } from "../stores/editable";
     import GridDesigner from "./GridDesigner.svelte";
     import { onMount } from "svelte";
     import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../constants";
     import ClueInput from "./ClueInput.svelte";
-    import { EditMode, type Crossword, Orientation } from "../types";
+    import { type Crossword, Orientation } from "../types";
     import { updateValue } from "../commands/update-value";
     import { toggleSquare } from "../commands/toggle-square";
     import { resizeGrid } from "../commands/resize";
-    import { updateClue } from "../commands/update-clue";
+    import { updateClueText } from "../commands/update-clue";
     import ClueList from "./ClueList.svelte";
     import { writable } from "svelte/store";
 
     export let init: Crossword | undefined = undefined;
 
-    const size = writable($crossword.size);
-    $: size.set($crossword.size);
+    const { size } = editable;
 
-    let editMode = EditMode.Grid;
+    let gridMode = true;
     let autoSymmetry = true;
     let focusGridDesigner: () => void;
 
@@ -31,25 +30,25 @@
     let focus = Section.Grid;
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
-        crossword.execute(updateValue(...event.detail));
+        editable.execute(updateValue(...event.detail));
     }
 
     function handleClearValue(event: CustomEvent<number>) {
-        crossword.execute(updateValue(event.detail, ""));
+        editable.execute(updateValue(event.detail, ""));
     }
 
     function handleToggleSquare(event: CustomEvent<number>) {
-        crossword.execute(toggleSquare(event.detail, autoSymmetry));
+        editable.execute(toggleSquare(event.detail, autoSymmetry));
     }
 
     function handleUpdateClue(
         event: CustomEvent<[Orientation, number, string]>,
     ) {
-        crossword.execute(updateClue(...event.detail));
+        editable.execute(updateClueText(...event.detail));
     }
 
     function resize(newSize: number) {
-        if (!newSize || newSize === $crossword.size) return;
+        if (!newSize || newSize === $size) return;
 
         if (newSize > MAX_GRID_SIZE) {
             newSize = MAX_GRID_SIZE;
@@ -59,16 +58,14 @@
             newSize = MIN_GRID_SIZE;
         }
 
-        if (newSize !== $crossword.size) {
-            crossword.execute(resizeGrid(newSize));
+        if (newSize !== $size) {
+            editable.execute(resizeGrid(newSize));
         }
     }
 
     function toggleGridMode() {
-        if (editMode === EditMode.Grid) {
-            editMode = EditMode.Insert;
-        } else {
-            editMode = EditMode.Grid;
+        gridMode = !gridMode;
+        if (gridMode) {
             focusGridDesigner();
         }
     }
@@ -84,7 +81,7 @@
 
     onMount(() => {
         if (init) {
-            crossword.load(init);
+            editable.load(init);
         }
         window.addEventListener("keydown", handleKeydown);
     });
@@ -104,30 +101,30 @@
             <input
                 type="radio"
                 id="gridModeRadioButton"
-                bind:group={editMode}
-                value={EditMode.Grid}
+                bind:group={gridMode}
+                value={true}
             />
 
             <label for="insertModeRadioButton">Insert</label>
             <input
                 type="radio"
                 id="insertModeRadioButton"
-                bind:group={editMode}
-                value={EditMode.Insert}
+                bind:group={gridMode}
+                value={false}
             />
         </fieldset>
         <button
             type="button"
-            on:click={() => crossword.undo()}
-            disabled={!crossword.history().undo.length}
+            on:click={() => editable.undo()}
+            disabled={!editable.history().undo.length}
         >
             Undo
         </button>
 
         <button
             type="button"
-            on:click={() => crossword.redo()}
-            disabled={!crossword.history().redo.length}
+            on:click={() => editable.redo()}
+            disabled={!editable.history().redo.length}
         >
             Redo
         </button>
@@ -161,9 +158,9 @@
             on:clearValue={handleClearValue}
             focused={focus === Section.Grid}
             editor={true}
-            {editMode}
+            disabled={gridMode}
         >
-            {#if editMode === EditMode.Grid}
+            {#if gridMode}
                 <GridDesigner
                     on:toggleSquare={handleToggleSquare}
                     focusable={focus === Section.Grid}
@@ -178,14 +175,11 @@
         on:focusin={() => {
             if (focus === Section.Clues) return;
             focus = Section.Clues;
-            editMode = EditMode.Insert;
+            gridMode = false;
         }}
     >
-        {#each Object.values(Orientation) as orientation}
+        {#each [Orientation.Across, Orientation.Down] as orientation}
             <ClueList
-                numbers={Object.keys($crossword[orientation]).map((n) =>
-                    parseInt(n),
-                )}
                 editor={true}
                 focusable={focus === Section.Clues}
                 {orientation}

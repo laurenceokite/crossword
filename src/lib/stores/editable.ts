@@ -13,16 +13,16 @@ const INIT_SIZE = 15;
 const sizeStore = writable(INIT_SIZE);
 const grid = numberGrid(newGrid(INIT_SIZE), INIT_SIZE);
 const clues = buildClues(grid);
-let crossword: Crossword = { grid, clues, size: INIT_SIZE };
 
-const gridStore = writable(crossword.grid);
-const clueStore = writable(crossword.clues);
+let crossword: Readonly<Crossword> = Object.freeze({ grid, clues, size: INIT_SIZE });
+const gridStore = writable(grid);
+const clueStore = writable(clues);
 
 function set(newValue: Crossword) {
     crossword = newValue;
-    sizeStore.set(crossword.size);
-    gridStore.set(crossword.grid);
-    clueStore.set(crossword.clues);
+    sizeStore.set(newValue.size);
+    gridStore.set(newValue.grid);
+    clueStore.set(newValue.clues);
 }
 
 function _execute(command: EditorCommand): CommandExecutionResult | null {
@@ -30,7 +30,7 @@ function _execute(command: EditorCommand): CommandExecutionResult | null {
 
     set(result.crossword);
 
-    return result;
+    return Object.freeze(result);
 }
 
 function execute(command: EditorCommand) {
@@ -77,6 +77,7 @@ export const editable: EditableCrossword = {
     grid: { subscribe: gridStore.subscribe },
     clues: { subscribe: clueStore.subscribe },
     size: { subscribe: sizeStore.subscribe },
+    crossword: () => crossword,
     title: () => crossword.title,
     theme: () => crossword.theme,
     load: set,

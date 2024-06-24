@@ -1,68 +1,50 @@
 <script lang="ts">
     import InputGridSquare from "./InputGridSquare.svelte";
-    import editable from "../stores/editable";
+    import { editable } from "../stores/editable";
     import cursor, {
         backward,
         forward,
         getXIndex,
         getYIndex,
     } from "../stores/cursor";
-    import { writable } from "svelte/store";
     import { createEventDispatcher } from "svelte";
-    import ClueInput from "./ClueInput.svelte";
     import {
         Direction,
-        EditMode,
-        type Orientation,
+        type Crossword,
         type Square,
         type WhiteSquare,
     } from "../types";
 
     export let focused: boolean = false;
-    export let editor: boolean = false;
-    export let editMode: EditMode = EditMode.Grid;
+    export let disabled: boolean;
+    export let editor: boolean;
 
-    const crossword = editor ? editable : editable;
+    const { grid, clues, size } = editable;
 
     let selectedSquare: Square | null = null;
-    $: selectedSquare = $crossword.grid[$cursor.index] ?? null;
+    $: selectedSquare = $grid.get($cursor.index) ?? null;
 
-    const current = writable<{
-        orientation: Orientation;
-        number: number | null;
-    }>();
-
-    let skipToNextEmptySquare = true;
-
-    $: setCurrent(selectedSquare, $cursor.orientation);
-
-    function setCurrent(square: Square | null, orientation: Orientation) {
-        current.update((previous) => {
-            const number = getCurrentNumber(square, orientation);
-
-            if (
-                previous &&
-                previous.number === number &&
-                orientation === previous.orientation
-            ) {
-                return previous;
-            }
-
-            skipToNextEmptySquare = true;
-
-            return {
-                orientation,
-                number,
-            };
-        });
+    const foci: (() => void)[] = [];
+    $: length = $grid.size;
+    $: if (foci.length > length) {
+        foci.length = length;
     }
+    $: focus($cursor.index);
 
-    function getCurrentNumber(square: Square | null, orientation: Orientation) {
-        if (!square || square.isBlack) {
-            return null;
+    function focus(index: number) {
+        if (disabled || !focused) {
+            return;
         }
 
-        return square[orientation];
+        foci[index]();
+    }
+
+    function getCrossword(): Crossword {
+        return {
+            grid: $grid,
+            clues: $clues,
+            size: $size,
+        };
     }
 
     function handleKeydown(event: KeyboardEvent) {
@@ -71,46 +53,26 @@
         switch (key) {
             case "ArrowUp":
                 event.preventDefault();
-                skipToNextEmptySquare = false;
-                cursor.move(
-                    $crossword,
-                    Direction.Up,
-                    editMode === EditMode.Insert,
-                );
+                cursor.move(getCrossword(), Direction.Up, true);
                 break;
 
             case "ArrowRight":
                 event.preventDefault();
-                skipToNextEmptySquare = false;
-                cursor.move(
-                    $crossword,
-                    Direction.Right,
-                    editMode === EditMode.Insert,
-                );
+                cursor.move(getCrossword(), Direction.Right, true);
                 break;
 
             case "ArrowDown":
                 event.preventDefault();
-                skipToNextEmptySquare = false;
-                cursor.move(
-                    $crossword,
-                    Direction.Down,
-                    editMode === EditMode.Insert,
-                );
+                cursor.move(getCrossword(), Direction.Down, true);
                 break;
 
             case "ArrowLeft":
                 event.preventDefault();
-                skipToNextEmptySquare = false;
-                cursor.move(
-                    $crossword,
-                    Direction.Left,
-                    editMode === EditMode.Insert,
-                );
+                cursor.move(getCrossword(), Direction.Left, true);
                 break;
 
             case " ":
-                if (editMode === EditMode.Grid) return;
+                if (disabled) return;
                 event.preventDefault();
                 cursor.toggleOrientation();
         }
@@ -118,22 +80,17 @@
 
     function handleClearValue(event: CustomEvent<number>) {
         dispatch("clearValue", event.detail);
-        cursor.move($crossword, backward($cursor.orientation), true);
+        cursor.move(getCrossword(), backward($cursor.orientation), true);
     }
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         dispatch("updateValue", event.detail);
-        const number = $current.number;
 
-        if (!number || !skipToNextEmptySquare) {
-            cursor.move($crossword, forward($cursor.orientation), true);
-        } else {
-            cursor.goToNextEmptySquare($crossword);
-        }
+        cursor.move(getCrossword(), forward($cursor.orientation), true);
     }
 
     function handleSelectSquare(event: CustomEvent<number>) {
-        cursor.setIndex($crossword.size, event.detail);
+        cursor.setIndex($size, event.detail);
     }
 
     function isHighlighted(square: WhiteSquare) {
@@ -155,12 +112,12 @@
 <div>
     <div
         class="input-grid grid h-max w-screen @3xl:w-max aspect-square relative border-2 border-gray-950"
-        style="--grid-size: {$crossword.size}"
+        style="--grid-size: {$size}"
         role="grid"
         tabindex="0"
         on:keydown={handleKeydown}
     >
-        {#each $crossword.grid as square, index}
+        {#each $grid as square, index}
             {#key $cursor}
                 <InputGridSquare
                     on:selectSquare={handleSelectSquare}
@@ -169,20 +126,21 @@
                     square={square.isBlack ? null : square}
                     selected={index === $cursor.index}
                     highlighted={!square.isBlack && isHighlighted(square)}
-                    focusable={focused && editMode === EditMode.Insert}
-                    disabled={editMode === EditMode.Grid}
-                    ariaColindex={getXIndex($crossword.size, index)}
-                    ariaRowindex={getYIndex($crossword.size, index)}
+                    focusable={focused && !disabled}
+                    {disabled}
+                    ariaColindex={getXIndex($size, index)}
+                    ariaRowindex={getYIndex($size, index)}
+                    bind:focus={foci[index]}
                 />
             {/key}
         {/each}
         <slot />
     </div>
 
-    {#if $current.number && editMode === EditMode.Insert}
+    {#if selectedSquare && !selectedSquare.isBlack && !disabled}
         <ClueInput
             {editor}
-            number={$current.number}
+            number={selectedSquare[$cursor.orientation]}
             orientation={$cursor.orientation}
         />
     {:else}
