@@ -121,8 +121,7 @@
         class="border p-2 ring-violet-200"
         class:ring={focused}
         class:bg-blue-100={focused}
-        class:bg-blue-50={currentNumber ===
-            squares[0][clue.get("orientation")] && !focused}
+        class:bg-blue-50={currentNumber === number && !focused}
         on:focusout={() => {
             focused = false;
         }}

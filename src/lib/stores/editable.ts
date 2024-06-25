@@ -2,6 +2,7 @@ import { type CommandExecutionResult, type Crossword, type EditableCrossword, ty
 import { CommandExecutionResultType } from "../types";
 import { buildClues, newGrid, numberGrid } from "../grid";
 import { writable } from "./writable";
+import { derived } from "svelte/store";
 
 const history: EditorHistory = {
     undo: [],
@@ -16,13 +17,13 @@ const clues = buildClues(grid);
 
 let crossword: Readonly<Crossword> = Object.freeze({ grid, clues, size: INIT_SIZE });
 const gridStore = writable(grid);
-const clueStore = writable(clues);
+const _clueStore = writable(clues);
 
 function set(newValue: Crossword) {
     crossword = newValue;
     sizeStore.set(newValue.size);
     gridStore.set(newValue.grid);
-    clueStore.set(newValue.clues);
+    _clueStore.set(newValue.clues);
 }
 
 function _execute(command: EditorCommand): CommandExecutionResult | null {
@@ -73,9 +74,12 @@ function redo() {
     return result?.type ?? CommandExecutionResultType.Void;
 }
 
+export const clueStore = derived(_clueStore, ($clues) => $clues.mapKeys((_, c) => c.get('number')));
+export const wordSquareStore = derived(clueStore, ($clues) => $clues.map(c => c.get('indices').map(i => crossword.grid.get(i)).toList()));
+
 export const editable: EditableCrossword = {
     grid: { subscribe: gridStore.subscribe },
-    clues: { subscribe: clueStore.subscribe },
+    clues: { subscribe: _clueStore.subscribe },
     size: { subscribe: sizeStore.subscribe },
     crossword: () => crossword,
     title: () => crossword.title,

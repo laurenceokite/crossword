@@ -103,5 +103,7 @@ export enum Orientation {
 export interface CursorState {
     orientation: Orientation;
     index: number;
+    number: number | null;
+    previousNumber: number | null;
 }
 
