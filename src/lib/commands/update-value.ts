@@ -1,31 +1,26 @@
-import { CommandExecutionResultType, EditorCommandType, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
+import { Square, type Crossword, type EditorCommand } from "../types";
 import { undo } from "./undo";
 
 export function updateValue(index: number, value: string): EditorCommand {
-    function execute(crossword: Crossword): CommandExecutionResult {
-        const square = crossword.grid[index] ?? null;
+    function execute(crossword: Crossword) {
+        const square = crossword.grid[index];
 
         if (
             !square
             || square.isBlack
         ) {
-            return {
-                type: CommandExecutionResultType.Void,
-                crossword
-            }
+            return { crossword }
         }
 
         const previousState = square;
-        const newSquare = {
-            ...square,
+        const newValues = {
             value: value.toUpperCase(),
             rebus: value.length > 1
         }
 
-        const grid = crossword.grid.map((sq, i) => i === index ? newSquare : sq);
+        const grid: ReadonlyArray<Square> = crossword.grid.map((sq, i) => i === index ? sq.update(() => newValues) : sq);
 
         return {
-            type: CommandExecutionResultType.Success,
             crossword: {
                 ...crossword,
                 grid
@@ -43,7 +38,6 @@ export function updateValue(index: number, value: string): EditorCommand {
     }
 
     return {
-        commandType: () => EditorCommandType.UpdateValue,
         displayName: () => "update value",
         execute
     }

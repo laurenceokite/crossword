@@ -1,7 +1,7 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
-    import crossword from "../stores/editable";
-    import cursor, { getXIndex, getYIndex } from "../stores/cursor";
+    import { editable } from "../stores/editable";
+    import { cursor, getXIndex, getYIndex } from "../stores/cursor";
 
     export let focusable = true;
     export const focus = () => {
@@ -13,6 +13,7 @@
     }>();
 
     let inputElements: HTMLInputElement[] = [];
+    const { grid, size } = editable;
 
     $: if (focusable && inputElements.length && inputElements[$cursor.index]) {
         inputElements[$cursor.index].focus();
@@ -20,7 +21,7 @@
 
     function handleChange(index: number) {
         if ($cursor.index !== index) {
-            cursor.setIndex($crossword.size, index);
+            cursor.setIndex(editable.crossword(), index);
         }
 
         dispatch("toggleSquare", index);
@@ -29,15 +30,15 @@
 
 <div
     class="grid-designer grid absolute inset-0 aspect-square"
-    style="--grid-size: {$crossword.size}"
+    style="--grid-size: {$size}"
 >
-    {#each $crossword.grid as square, index}
+    {#each $grid as square, index}
         {#key $cursor}
             <div
                 class:ring-4={$cursor.index === index}
                 role="gridcell"
-                aria-rowindex={getYIndex($crossword.size, index)}
-                aria-colindex={getXIndex($crossword.size, index)}
+                aria-rowindex={getYIndex($size, index)}
+                aria-colindex={getXIndex($size, index)}
             >
                 <input
                     class="w-full h-full opacity-0"

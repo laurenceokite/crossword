@@ -1,39 +1,42 @@
-import { newSquare, renumber } from "../grid";
-import { CommandExecutionResultType, EditorCommandType, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
+import { renumber } from "../grid";
+import { type Crossword, type EditorCommand, Square, Orientation } from "../types";
 import { undo } from "./undo";
+import { Iter } from "../iterators";
 
 export function toggleSquare(index: number, symmetry: boolean = false): EditorCommand {
-    function execute(crossword: Crossword): CommandExecutionResult {
-        const square = crossword.grid[index] ?? null;
+    function execute(crossword: Crossword) {
+        const square = crossword.grid[index];
 
         if (!square) {
-            return {
-                type: CommandExecutionResultType.Void,
-                crossword
-            }
+            return { crossword }
         }
 
-        const counterpart = symmetry ? crossword.grid.length - (index + 1) : null;
-        const previousState = {
+        const counterpart = symmetry ? crossword.grid.length - (index + 1) : -1;
+        const previousState: { [key: number]: Square | undefined } = {
             [index]: square,
-            ...(() => {
-                if (counterpart !== null) {
-                    return { [counterpart]: crossword.grid[counterpart] ?? null }
-                }
-            })(),
+            [counterpart]: crossword.grid[counterpart],
         };
 
-        const grid = crossword.grid.map((sq, i) => (i === index || i === counterpart) ? newSquare(!square.isBlack) : sq);
+        const grid = crossword.grid.map((sq, i) => (i === index || i === counterpart) ? new Square({ isBlack: !square.isBlack }) : sq);
         const [updatedCrossword, lostClues] = renumber({ ...crossword, grid });
 
         return {
-            type: CommandExecutionResultType.Success,
             crossword: updatedCrossword,
             undo: undo(toggleSquare(index, symmetry), (cw: Crossword) => {
-                const clues = [...crossword.clues, ...lostClues];
+                const result = renumber({ ...cw, grid: cw.grid.map((sq, i) => previousState[i] ? previousState[i]! : sq) });
+                const clues = {
+                    [Orientation.Across]: new Map(
+                        new Iter(
+                            result[0].clues[Orientation.Across].entries()
+                        ).map((item) => lostClues[Orientation.Across].has(item[0]) ? [item[0], lostClues[Orientation.Across].get(item[0])!] : item)
+                    ),
+                    [Orientation.Down]: new Map(
+                        new Iter(
+                            result[0].clues[Orientation.Down].entries()
+                        ).map((item) => lostClues[Orientation.Down].has(item[0]) ? [item[0], lostClues[Orientation.Down].get(item[0])!] : item)
 
-                const result = renumber({ ...cw, grid: cw.grid.map((sq, i) => previousState[i] ? previousState[i] : sq) });
-
+                    ),
+                }
                 return {
                     ...result[0],
                     clues,
@@ -44,12 +47,9 @@ export function toggleSquare(index: number, symmetry: boolean = false): EditorCo
     }
 
     return {
-        commandType: () => EditorCommandType.ToggleSquare,
         displayName: () => "toggle square color",
         execute
     }
 }
-
-
 
 

@@ -1,5 +1,5 @@
-import { type Collection, List, Map, Record, Set } from "immutable";
-import { type Grid, Orientation, type Crossword, type Clue, type Square, type ClueMap } from "./types";
+import { Iter } from "./iterators";
+import { type Grid, Orientation, type Crossword, Clue, Square, type ClueMap } from "./types";
 
 export function renumber(crossword: Crossword): [crossword: Crossword, lostClues: ClueMap] {
     const grid = numberGrid(crossword.grid, crossword.size);
@@ -12,10 +12,10 @@ export function numberGrid(grid: Grid, size: number): Grid {
     let number = 0;
 
     return grid.map((square, index) => {
-        if (square.isBlack) return newSquare(true);
+        if (square.isBlack) return square;
 
-        const leftSquare = grid.get(index - 1) ?? null;
-        const upSquare = grid.get(index - size) ?? null;
+        const leftSquare = index % size !== 0 && grid[index - 1];
+        const upSquare = index >= size && grid[index - size];
 
         const newAcross = !leftSquare || leftSquare.isBlack;
         const newDown = !upSquare || upSquare.isBlack;
@@ -24,74 +24,89 @@ export function numberGrid(grid: Grid, size: number): Grid {
             number++
         }
 
-        return {
-            ...square,
-            index,
-            across: newAcross ? number : leftSquare[Orientation.Down],
-            down: newDown ? number : upSquare[Orientation.Across],
-            number: newAcross || newDown ? number : null
-        };
+        console.log(square.update(() => { return {} }) instanceof Square);
+
+        return square.update(() => {
+            return {
+                index,
+                across: newAcross ? number : leftSquare[Orientation.Down],
+                down: newDown ? number : upSquare[Orientation.Across],
+                number: newAcross || newDown ? number : null
+            }
+        });
     });
 }
 
-export function newSquare(isBlack: boolean): Square {
-    return isBlack ? { isBlack } : {
-        isBlack,
-        value: "",
-        index: 0,
-        [Orientation.Across]: 0,
-        [Orientation.Down]: 0,
-        number: null,
-        decoration: null,
-        rebus: false
-    };
-}
-
-export function newClue(number: number, orientation: Orientation): Record<Clue> {
-    return Record({
-        orientation,
-        number,
-        text: "",
-        associations: List<Set<number>>(),
-        indices: Set<number>()
-    })();
-}
-
 export function buildClues(grid: Grid): ClueMap {
-    const build = (orientation: Orientation): ClueMap => grid
-        .map(s => s.isBlack ? undefined : s[orientation])
-        .reduce((map, number, index) => {
-            if (number === undefined) return map;
-
-            const key = List([number, orientation]);
-
-            const value = map.get(key, newClue(number, orientation));
-            const indices = value.get('indices').add(index);
-
-            return map.set(key, value.set('indices', indices));
-        }, Map<List<number>, Record<Clue>>())
-        .mapKeys((_, v) => v.get('indices'));
-
-    return build(Orientation.Across).merge(build(Orientation.Down));
+    function build(orientation: Orientation): Map<number, Clue> {
+        return grid.reduce((map, square, index) => {
+            if (square.isBlack) {
+                return map;
+            }
+            const number = square[orientation];
+            if (map.has(number)) {
+                console.log(map.get(number) instanceof Square);
+                map.get(number)!.update((clue) => {
+                    return {
+                        indices: [...clue.indices, index]
+                    }
+                });
+            } else {
+                map.set(number, new Clue({ number }))
+                return map;
+            }
+            return map;
+        }, new Map<number, Clue>());
+    }
+    return {
+        [Orientation.Across]: build(Orientation.Across),
+        [Orientation.Down]: build(Orientation.Down)
+    }
 }
 
 export function updateClues(grid: Grid, oldClues: ClueMap): [result: ClueMap, lostClues: ClueMap] {
-    const newClues = buildClues(grid);
-    const [retainedClues, lostClues] = oldClues.partition((_, k) => newClues.has(k));
+    const emptyClues = buildClues(grid);
+    const concat = (clues: ClueMap): Iter<[number, Clue]> => new Iter(clues[Orientation.Across].entries())
+        .concat(new Iter(clues[Orientation.Down].entries()));
 
-    const updateAssociations = (clue: Record<Clue>) => clue
-        .set('associations', clue.get('associations')
-            .filter(k => newClues.has(k)));
+    const squareMap = new Map(concat(emptyClues).map(([_, v]) => [v.key(), v]));
+    const [lost, retained] = concat(oldClues).partition(([_, v]) => squareMap.has(v.key()));
+
+    const updateAssociations = (clue: Clue) => {
+        if (clue.associations.size) {
+            return clue.update(() => {
+                return {
+                    associations: new Set(new Iter(clue.associations.values()).filter((k) => squareMap.has(k)))
+                }
+            });
+        }
+
+        return clue;
+    }
+
+    function partition(clues: Iter<[number, Clue]>, updateAssoc: boolean): [across: Iter<[number, Clue]>, down: Iter<[number, Clue]>] {
+        return clues
+            .map((pair) => (updateAssoc ? [pair[0], updateAssociations(pair[1])] : pair) as [number, Clue])
+            .partition(([_, v]) => !v[Orientation.Across]());
+    }
+
+    const result = partition(retained, true);
+    const lostClues = partition(lost, false);
 
     return [
-        newClues
-            .mergeWith((nClue, rClue) => rClue.set('number', nClue.get('number')), retainedClues.map(updateAssociations)),
-        lostClues
+        {
+            [Orientation.Across]: new Map(result[Orientation.Across]),
+            [Orientation.Down]: new Map(result[Orientation.Down])
+        } as Readonly<ClueMap>,
+        {
+            [Orientation.Across]: new Map(lostClues[Orientation.Across]),
+            [Orientation.Down]: new Map(lostClues[Orientation.Down])
+        }
     ]
 }
 
 export function newGrid(size: number): Grid {
-    return List(new Array(size ** 2).fill(null).map(() => newSquare(false)));
+    return new Array(size ** 2).fill(new Square());
 }
 
 export function isNewRow(index: number, size: number): boolean {
@@ -102,16 +117,4 @@ export function isNewColumn(index: number, size: number) {
     return index < size
 }
 
-export function* iterateListBy<T>(list: List<T>, interval: number, start: number = 0): Generator<T | null, void, void> {
-    let index = start;
-    for (let i = 0; i < list.size; i++) {
-        yield list.get(Math.floor(index % length)) ?? null;
-        index += interval;
-    }
-}
 
-export function* iterateListFrom<T>(list: List<T>, start: number): Generator<T | null, void, void> {
-    for (let i = start; i < list.size; i++) {
-        yield list.get(Math.floor(i % length)) ?? null;
-    }
-}

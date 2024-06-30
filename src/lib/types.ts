@@ -1,4 +1,3 @@
-import type { Record, Map, List, Set } from "immutable";
 import type { Readable } from "svelte/store";
 
 export type Crossword = {
@@ -9,36 +8,85 @@ export type Crossword = {
     theme?: string;
 }
 
-export type ClueMap = Map<Set<number>, Record<Clue>>;
-
-export type Grid = List<Square>;
-
-export type Clue = {
-    orientation: Orientation;
-    number: number;
-    text: string;
-    indices: Set<number>;
-    associations: List<Set<number>>;
+export enum Orientation {
+    Across,
+    Down
 }
 
+export class Square {
+    public isBlack: boolean;
+    public index: number;
+    public value: string;
+    public [Orientation.Across]: number;
+    public [Orientation.Down]: number;
+    public number: number | null;
+    public decoration: SquareDecoration | null;
+    public rebus: boolean;
+
+    constructor(init?: Partial<Square>) {
+        this.isBlack = init?.isBlack ?? false;
+        this.index = init?.index ?? 0;
+        this.value = init?.value ?? "";
+        this[Orientation.Down] = init?.[Orientation.Down] ?? 0;
+        this[Orientation.Across] = init?.[Orientation.Across] ?? 0;
+        this.number = init?.number ?? null;
+        this.decoration = init?.decoration ?? null
+        this.rebus = init?.rebus ?? false;
+    };
+
+    public update(fn: (s: Square) => Partial<Square>): Square {
+        return new Square({
+            ...this,
+            ...fn(this)
+        });
+    }
+
+    public toggle(): Square {
+        return new Square({ isBlack: !this.isBlack });
+    }
+}
+
+export class Clue {
+    public number: number = 0;
+    public orientation: Orientation = Orientation.Across;
+    public text: string = "";
+    public indices: ReadonlyArray<number> = [];
+    public associations: ReadonlySet<string> = new Set<string>;
+
+    constructor(init?: Partial<Clue>) {
+        if (init) {
+            this.number = init.number ?? 0;
+            this.orientation = init.orientation ?? Orientation.Across;
+            this.text = init.text ?? "";
+            this.indices = init.indices ?? [];
+            this.associations = init.associations ?? new Set<string>;
+        }
+    };
+
+    update(fn: (c: Clue) => Partial<Clue>): Clue {
+        return {
+            ...this,
+            ...fn(this)
+        } as Readonly<Clue>;
+    }
+
+    key() {
+        return this.indices.join(",");
+    }
+
+    [Orientation.Across]() {
+        return this.orientation === Orientation.Across;
+    }
+
+    [Orientation.Down]() {
+        return this.orientation === Orientation.Down;
+    }
+}
+
+export type Grid = ReadonlyArray<Square>;
+
+export type ClueMap = { [K in Orientation]: Map<number, Clue> };
 export enum SquareDecoration { }
-
-export type Square = WhiteSquare | BlackSquare;
-
-export type WhiteSquare = {
-    readonly isBlack: false;
-    index: number;
-    value: string;
-    [Orientation.Across]: number;
-    [Orientation.Down]: number;
-    number: number | null;
-    decoration: SquareDecoration | null;
-    rebus: boolean;
-}
-
-export type BlackSquare = {
-    readonly isBlack: true;
-}
 
 export interface EditableCrossword {
     grid: Readable<Grid>;
@@ -52,12 +100,7 @@ export interface EditableCrossword {
     execute: (command: EditorCommand) => void;
     undo: () => void;
     redo: () => void;
-    history: () => EditorHistory;
-}
-
-export interface PlayableCrossword extends EditableCrossword {
-    progress: () => number;
-    isComplete: () => boolean;
+    history: () => Readonly<EditorHistory>;
 }
 
 export type EditorHistory = {
@@ -67,25 +110,7 @@ export type EditorHistory = {
 
 export interface EditorCommand {
     displayName: () => string;
-    execute: (crossword: Crossword) => CommandExecutionResult;
-}
-
-export type CommandExecutionResult = CommandExecutionSuccess | CommandExecutionVoid;
-
-export type CommandExecutionSuccess = {
-    type: CommandExecutionResultType.Success;
-    crossword: Crossword;
-    undo: EditorCommand;
-}
-
-export type CommandExecutionVoid = {
-    type: CommandExecutionResultType.Void;
-    crossword: Crossword;
-}
-
-export enum CommandExecutionResultType {
-    Void,
-    Success
+    execute: (crossword: Crossword) => { crossword: Crossword, undo?: EditorCommand };
 }
 
 export enum Direction {
@@ -95,10 +120,7 @@ export enum Direction {
     Right,
 }
 
-export enum Orientation {
-    Across,
-    Down
-}
+
 
 export interface CursorState {
     orientation: Orientation;

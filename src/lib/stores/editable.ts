@@ -1,44 +1,36 @@
-import { type CommandExecutionResult, type Crossword, type EditableCrossword, type EditorCommand, type EditorHistory } from "../types";
-import { CommandExecutionResultType } from "../types";
+import { type Crossword, type EditableCrossword, type EditorCommand, type EditorHistory } from "../types";
 import { buildClues, newGrid, numberGrid } from "../grid";
-import { writable } from "./writable";
-import { derived } from "svelte/store";
+import { writable } from "svelte/store";
 
 const history: EditorHistory = {
     undo: [],
     redo: []
 };
 
-const INIT_SIZE = 15;
+const INIT_SIZE = 21;
 
 const sizeStore = writable(INIT_SIZE);
-const grid = numberGrid(newGrid(INIT_SIZE), INIT_SIZE);
+const emptyGrid = newGrid(INIT_SIZE);
+const grid = numberGrid(emptyGrid, INIT_SIZE);
 const clues = buildClues(grid);
 
-let crossword: Readonly<Crossword> = Object.freeze({ grid, clues, size: INIT_SIZE });
+let crossword: Readonly<Crossword> = { grid, clues, size: INIT_SIZE };
 const gridStore = writable(grid);
-const _clueStore = writable(clues);
+const clueStore = writable(clues);
 
 function set(newValue: Crossword) {
     crossword = newValue;
-    sizeStore.set(newValue.size);
-    gridStore.set(newValue.grid);
-    _clueStore.set(newValue.clues);
-}
-
-function _execute(command: EditorCommand): CommandExecutionResult | null {
-    const result = command.execute(crossword);
-
-    set(result.crossword);
-
-    return Object.freeze(result);
+    sizeStore.set(crossword.size);
+    gridStore.set(crossword.grid);
+    clueStore.set(crossword.clues);
 }
 
 function execute(command: EditorCommand) {
-    const result = _execute(command);
+    const result = command.execute(crossword);
 
-    if (result?.type === CommandExecutionResultType.Success) {
+    if (result.undo) {
         history.undo.push(result.undo);
+        set(result.crossword);
     }
 }
 
@@ -49,37 +41,33 @@ function undo() {
         return;
     }
 
-    const result = _execute(command);
+    const result = command.execute(crossword);
 
-    if (result?.type === CommandExecutionResultType.Success) {
+    if (result.undo) {
         history.redo.push(result.undo);
+        set(result.crossword);
     }
-
-    return result?.type ?? CommandExecutionResultType.Void;
 }
 
 function redo() {
     const command = history.redo.pop();
 
     if (!command) {
-        return CommandExecutionResultType.Void;
+        return;
     }
 
-    const result = _execute(command);
+    const result = command.execute(crossword);
 
-    if (result?.type === CommandExecutionResultType.Success) {
+    if (result.undo) {
         history.undo.push(result.undo);
+        set(result.crossword)
     }
-
-    return result?.type ?? CommandExecutionResultType.Void;
 }
 
-export const clueStore = derived(_clueStore, ($clues) => $clues.mapKeys((_, c) => c.get('number')));
-export const wordSquareStore = derived(clueStore, ($clues) => $clues.map(c => c.get('indices').map(i => crossword.grid.get(i)).toList()));
 
 export const editable: EditableCrossword = {
     grid: { subscribe: gridStore.subscribe },
-    clues: { subscribe: _clueStore.subscribe },
+    clues: { subscribe: clueStore.subscribe },
     size: { subscribe: sizeStore.subscribe },
     crossword: () => crossword,
     title: () => crossword.title,

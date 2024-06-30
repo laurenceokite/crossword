@@ -1,31 +1,28 @@
 <script lang="ts">
     import InputGridSquare from "./InputGridSquare.svelte";
     import { editable } from "../stores/editable";
-    import cursor, {
+    import {
+        cursor,
         backward,
         forward,
         getXIndex,
         getYIndex,
     } from "../stores/cursor";
     import { createEventDispatcher } from "svelte";
-    import {
-        Direction,
-        type Crossword,
-        type Square,
-        type WhiteSquare,
-    } from "../types";
+    import { Direction, type Square } from "../types";
 
     export let focused: boolean = false;
     export let disabled: boolean;
-    export let editor: boolean;
 
-    const { grid, clues, size } = editable;
+    const { grid, size, clues } = editable;
+
+    let goToNextEmpty = true;
 
     let selectedSquare: Square | null = null;
-    $: selectedSquare = $grid.get($cursor.index) ?? null;
+    $: selectedSquare = $grid[$cursor.index] ?? null;
 
     const foci: (() => void)[] = [];
-    $: length = $grid.size;
+    $: length = $grid.length;
     $: if (foci.length > length) {
         foci.length = length;
     }
@@ -39,12 +36,11 @@
         foci[index]();
     }
 
-    function getCrossword(): Crossword {
-        return {
-            grid: $grid,
-            clues: $clues,
-            size: $size,
-        };
+    function move(direction: Direction) {
+        if ($cursor.number === $cursor.previousNumber) {
+            goToNextEmpty = false;
+        }
+        cursor.move(editable.crossword(), direction, true);
     }
 
     function handleKeydown(event: KeyboardEvent) {
@@ -52,23 +48,22 @@
 
         switch (key) {
             case "ArrowUp":
-                event.preventDefault();
-                cursor.move(getCrossword(), Direction.Up, true);
+                move(Direction.Up);
                 break;
 
             case "ArrowRight":
                 event.preventDefault();
-                cursor.move(getCrossword(), Direction.Right, true);
+                move(Direction.Right);
                 break;
 
             case "ArrowDown":
                 event.preventDefault();
-                cursor.move(getCrossword(), Direction.Down, true);
+                move(Direction.Down);
                 break;
 
             case "ArrowLeft":
                 event.preventDefault();
-                cursor.move(getCrossword(), Direction.Left, true);
+                move(Direction.Left);
                 break;
 
             case " ":
@@ -80,20 +75,31 @@
 
     function handleClearValue(event: CustomEvent<number>) {
         dispatch("clearValue", event.detail);
-        cursor.move(getCrossword(), backward($cursor.orientation), true);
+        cursor.move(editable.crossword(), backward($cursor.orientation), true);
     }
 
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         dispatch("updateValue", event.detail);
-
-        cursor.move(getCrossword(), forward($cursor.orientation), true);
+        if (goToNextEmpty) {
+            const { number } = $cursor;
+            cursor.goToNextEmptySquare(
+                editable.crossword(),
+                number !== null ? ($clues[$cursor.orientation].get(number)?.indices.values()) ?? undefined : undefined,
+            );
+        } else {
+            cursor.move(
+                editable.crossword(),
+                forward($cursor.orientation),
+                true,
+            );
+        }
     }
 
     function handleSelectSquare(event: CustomEvent<number>) {
-        cursor.setIndex($size, event.detail);
+        cursor.setIndex(editable.crossword(), event.detail);
     }
 
-    function isHighlighted(square: WhiteSquare) {
+    function isHighlighted(square: Square) {
         if (selectedSquare?.isBlack) {
             return false;
         }
@@ -109,43 +115,29 @@
     }>();
 </script>
 
-<div>
-    <div
-        class="input-grid grid h-max w-screen @3xl:w-max aspect-square relative border-2 border-gray-950"
-        style="--grid-size: {$size}"
-        role="grid"
-        tabindex="0"
-        on:keydown={handleKeydown}
-    >
-        {#each $grid as square, index}
-            {#key $cursor}
-                <InputGridSquare
-                    on:selectSquare={handleSelectSquare}
-                    on:updateValue={handleUpdateValue}
-                    on:clearValue={handleClearValue}
-                    square={square.isBlack ? null : square}
-                    selected={index === $cursor.index}
-                    highlighted={!square.isBlack && isHighlighted(square)}
-                    focusable={focused && !disabled}
-                    {disabled}
-                    ariaColindex={getXIndex($size, index)}
-                    ariaRowindex={getYIndex($size, index)}
-                    bind:focus={foci[index]}
-                />
-            {/key}
-        {/each}
-        <slot />
-    </div>
-
-    {#if selectedSquare && !selectedSquare.isBlack && !disabled}
-        <ClueInput
-            {editor}
-            number={selectedSquare[$cursor.orientation]}
-            orientation={$cursor.orientation}
-        />
-    {:else}
-        <div class="h-24 bg-gray-200"></div>
-    {/if}
+<div
+    class="input-grid grid h-max w-screen @3xl:w-max aspect-square relative border-2 border-gray-950"
+    style="--grid-size: {$size}"
+    role="grid"
+    tabindex="0"
+    on:keydown={handleKeydown}
+>
+    {#each $grid as square, index}
+            <InputGridSquare
+                on:selectSquare={handleSelectSquare}
+                on:updateValue={handleUpdateValue}
+                on:clearValue={handleClearValue}
+                square={square.isBlack ? null : square}
+                selected={index === $cursor.index}
+                highlighted={!square.isBlack && isHighlighted(square)}
+                focusable={focused && !disabled}
+                {disabled}
+                ariaColindex={getXIndex($size, index)}
+                ariaRowindex={getYIndex($size, index)}
+                bind:focus={foci[index]}
+            />
+    {/each}
+    <slot />
 </div>
 
 <style>

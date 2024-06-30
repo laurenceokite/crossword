@@ -1,24 +1,26 @@
 <script lang="ts">
-    import cursor, { isAcross } from "../stores/cursor";
+    import { cursor, isAcross } from "../stores/cursor";
     import { editable } from "../stores/editable";
     import InputGridSquare from "./InputGridSquare.svelte";
-    import { Record, List } from "immutable";
-    import { Orientation, type Clue, type WhiteSquare } from "../types";
+    import { Direction, type Clue, Square } from "../types";
     import { createClueInputDispatcher } from "./clueInputDispatcher";
 
-    export let clue: Record<Clue>;
-    export let squares: List<WhiteSquare>;
-    export let currentNumber: number;
+    export let clue: Clue;
     export let editor = false;
     export let focusable = false;
-    export let squareInputMode = false;
+    export let squareInputMode = true;
+    export let goToNextEmpty = true;
+    export let squares: Square[];
     export const focusText = () => textAreaElement?.focus();
     export const focusSquares = () => {
-        const pos = squares.findKey((s) => s.index === $cursor.index);
+        const pos = squares.findIndex((s) => s.index === $cursor.index);
         if (pos !== undefined) {
             squareFoci[pos]();
         } else {
-            cursor.setIndex($size, squares.get(0)?.index ?? $cursor.index);
+            cursor.setIndex(
+                editable.crossword(),
+                squares[0].index ?? $cursor.index,
+            );
             squareFoci[0]();
         }
     };
@@ -28,11 +30,15 @@
         next: number;
     }>();
 
-    const { size } = editable;
-
-    $: number = clue.get("number");
-    $: orientation = clue.get("orientation");
-    $: increment = isAcross(orientation) ? 1 : $size;
+    $: direction = isAcross(clue.orientation)
+        ? { left: Direction.Left, right: Direction.Right }
+        : { left: Direction.Up, right: Direction.Down };
+    $: if (
+        $cursor.number === clue.number &&
+        $cursor.number !== $cursor.previousNumber
+    ) {
+        goToNextEmpty = true;
+    }
 
     const squareFoci: { [key: number]: () => void } = {};
     let textAreaElement: HTMLTextAreaElement;
@@ -42,8 +48,8 @@
         if (!event.target) return;
 
         dispatch("updateClue", [
-            orientation,
-            number,
+            clue.orientation,
+            clue.number,
             (event.target as HTMLInputElement).value,
         ]);
     }
@@ -51,24 +57,27 @@
     function handleUpdateValue(event: CustomEvent<[number, string]>) {
         dispatch("updateValue", event.detail);
 
-        cursor.goToNextEmptySquare(editable.crossword(), number);
+        cursor.goToNextEmptySquare(editable.crossword(), new Set(clue.indices));
     }
 
     function handleClearValue(event: CustomEvent<number>) {
         dispatch("clearValue", event.detail);
 
-        const index = squares.findIndex((s) => s.index === $cursor.index);
+        const index = squares?.findIndex((s) => s.index === $cursor.index);
 
-        if (index < 1) return;
+        if (!index || index < 1) return;
 
-        cursor.setIndex($size, squares.get(index - 1)?.index ?? $cursor.index);
+        cursor.setIndex(
+            editable.crossword(),
+            squares[index - 1].index ?? $cursor.index,
+        );
     }
 
     function handleSelectSquare(event: CustomEvent<number>) {
         squareInputMode = true;
         if (event.detail === $cursor.index) return;
 
-        cursor.setIndex($size, event.detail);
+        cursor.setIndex(editable.crossword(), event.detail);
     }
 
     function handleKeydown(event: KeyboardEvent) {
@@ -80,34 +89,32 @@
                     focusText();
                     event.stopPropagation();
                 } else {
-                    dispatch("previous", number);
+                    dispatch("previous", clue.number);
                 }
                 break;
             case "ArrowDown":
                 if (editor && !squareInputMode) {
+                    goToNextEmpty = true;
                     focusSquares();
                     event.stopPropagation();
                 } else {
-                    dispatch("next", number);
+                    dispatch("next", clue.number);
                 }
                 break;
             case "ArrowLeft":
-                if (
-                    $cursor.index !== squares.first()?.index &&
-                    squareInputMode
-                ) {
-                    const index = $cursor.index - increment;
-                    cursor.setIndex($size, index);
+                if ($cursor.index !== squares[0].index && squareInputMode) {
+                    goToNextEmpty = false;
+                    cursor.move(editable.crossword(), direction.left, true);
                     event.stopPropagation();
                 }
                 break;
             case "ArrowRight":
                 if (
-                    $cursor.index !== squares.last()?.index &&
+                    $cursor.index !== squares[squares.length - 1].index &&
                     squareInputMode
                 ) {
-                    const index = $cursor.index + increment;
-                    cursor.setIndex($size, index);
+                    goToNextEmpty = false;
+                    cursor.move(editable.crossword(), direction.right, true);
                     event.stopPropagation();
                 }
                 break;
@@ -115,24 +122,24 @@
     }
 </script>
 
-{#if clue}
+{#if clue && squares}
     <div
         role="grid"
         class="border p-2 ring-violet-200"
         class:ring={focused}
         class:bg-blue-100={focused}
-        class:bg-blue-50={currentNumber === number && !focused}
+        class:bg-blue-50={$cursor.number === clue.number && !focused}
         on:focusout={() => {
             focused = false;
         }}
     >
-        <div class="font-semibold">{number}</div>
+        <div class="font-semibold">{clue.number}</div>
         {#if editor}
             <textarea
                 role="row"
                 class="my-4 h-8 w-full border border-black"
                 tabindex="-1"
-                value={clue.get("text")}
+                value={clue.text}
                 bind:this={textAreaElement}
                 on:focus={() => {
                     focused = true;
@@ -143,7 +150,7 @@
                 on:keydown={handleKeydown}
             ></textarea>
         {:else}
-            <div class="my-4">{clue.get("text")}</div>
+            <div class="my-4">{clue.text}</div>
         {/if}
         <div
             role="row"

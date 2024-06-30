@@ -4,14 +4,13 @@
     import GridDesigner from "./GridDesigner.svelte";
     import { onMount } from "svelte";
     import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../constants";
-    import ClueInput from "./ClueInput.svelte";
     import { type Crossword, Orientation } from "../types";
     import { updateValue } from "../commands/update-value";
     import { toggleSquare } from "../commands/toggle-square";
     import { resizeGrid } from "../commands/resize";
     import { updateClueText } from "../commands/update-clue";
     import ClueList from "./ClueList.svelte";
-    import { writable } from "svelte/store";
+    import { cursor } from "../stores/cursor";
 
     export let init: Crossword | undefined = undefined;
 
@@ -83,6 +82,7 @@
         if (init) {
             editable.load(init);
         }
+        cursor.initialize(editable.crossword());
         window.addEventListener("keydown", handleKeydown);
     });
 </script>
@@ -157,7 +157,6 @@
             on:updateValue={handleUpdateValue}
             on:clearValue={handleClearValue}
             focused={focus === Section.Grid}
-            editor={true}
             disabled={gridMode}
         >
             {#if gridMode}

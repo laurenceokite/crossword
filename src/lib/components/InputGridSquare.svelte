@@ -1,8 +1,8 @@
 <script lang="ts">
-    import type { WhiteSquare } from "../types";
     import { createEventDispatcher } from "svelte";
+    import type { Square } from "../types";
 
-    export let square: WhiteSquare | null;
+    export let square: Square | null;
     export let ariaColindex: number | undefined;
     export let ariaRowindex: number | undefined;
     export let highlighted: boolean;

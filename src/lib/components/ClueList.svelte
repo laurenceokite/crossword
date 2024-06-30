@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { Orientation, type WhiteSquare } from "../types";
+    import { Orientation, Square } from "../types";
     import ClueInput from "./ClueInput.svelte";
     import { createClueInputDispatcher } from "./clueInputDispatcher";
-    import cursor from "../stores/cursor";
+    import { cursor } from "../stores/cursor";
     import { editable } from "../stores/editable";
 
     export let editor: boolean = false;
@@ -12,12 +12,24 @@
     const dispatch = createClueInputDispatcher();
     const focusSquares: (() => void)[] = [];
     const focusText: (() => void)[] = [];
-    const { clues: clueStore, grid } = editable;
+    const { clues, grid } = editable;
+    let goToNextEmpty = true;
 
-    $: clues = $clueStore
-        .toSeq()
-        .filter((c) => c.get("orientation") === orientation)
-        .mapKeys((indices) => indices.map((i) => $grid.get(i) as WhiteSquare));
+    $: if (!focusable) {
+        goToNextEmpty = true;
+    }
+
+    $: squares = $grid.reduce((map, square) => {
+        if (square.isBlack) {
+            return map;
+        }
+        const number = square[orientation];
+        map.set(
+            number,
+            map.has(number) ? [...map.get(number)!, square] : [square],
+        );
+        return map;
+    }, new Map<number, Square[]>());
 
     function move(currentIndex: number, newIndex: number) {
         const _move =
@@ -39,13 +51,13 @@
     >
         {orientation === Orientation.Across ? "ACROSS" : "DOWN"}
     </h2>
-    {#each clues.entries() as [squares, clue], index}
+    {#each [...$clues[orientation].values()] as clue, index}
         <li class:bg-gray-100={index % 2 === 0}>
             <ClueInput
-                {squares}
                 {clue}
                 {editor}
                 {focusable}
+                squares={squares.get(clue.number) ?? []}
                 on:updateClue={(e) => dispatch("updateClue", e.detail)}
                 on:updateValue={(e) => dispatch("updateValue", e.detail)}
                 on:clearValue={(e) => dispatch("clearValue", e.detail)}
@@ -53,6 +65,7 @@
                 on:next={() => move(index, index + 1)}
                 bind:focusText={focusText[index]}
                 bind:focusSquares={focusSquares[index]}
+                bind:goToNextEmpty
             />
         </li>
     {/each}

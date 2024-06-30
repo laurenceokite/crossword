@@ -1,43 +1,39 @@
-import { CommandExecutionResultType, EditorCommandType, Orientation, type Clue, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
+import { Orientation, type Clue, type ClueMap, type CommandExecutionResult, type Crossword, type EditorCommand } from "../types";
 import { undo } from "./undo";
 
 export function updateClueText(orientation: Orientation, number: number, value: string): EditorCommand {
 
     function execute(crossword: Crossword): CommandExecutionResult {
-        let previousState = crossword.clues.find(clue => clue.number === number);
+        let previousState = crossword.clues[orientation].get(number);
 
         if (!previousState) {
-            return {
-                type: CommandExecutionResultType.Void,
-                crossword
-            };
+            return { crossword };
         }
 
-        const newState = {
-            ...previousState,
-            text: value
-        };
-
-        const update = (state: Clue, clues: Clue[]): Clue[] => clues.map(clue => clue.number === number ? state : clue);
+        const newState = previousState.update(() => { return { text: value } });
 
         return {
-            type: CommandExecutionResultType.Success,
             crossword: {
                 ...crossword,
-                clues: update(newState, crossword.clues)
+                clues: {
+                    ...crossword.clues,
+                    [orientation]: new Map(crossword.clues[orientation].entries()).set(number, newState) as Map<number, Clue>
+                }
             },
             undo: undo(updateClueText(orientation, number, value), (cw: Crossword) => {
                 return {
                     ...cw,
-                    clues: update(previousState, cw.clues)
+                    clues: {
+                        ...crossword.clues,
+                        [orientation]: new Map(crossword.clues[orientation].entries()).set(number, previousState) as Map<number, Clue>
+                    }
                 }
             })
         }
     }
 
     return {
-        commandType: () => EditorCommandType.UpdateClue,
-        displayName: () => "update clue",
+        displayName: () => "update clue text",
         execute
     }
 }
