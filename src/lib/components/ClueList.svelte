@@ -51,7 +51,7 @@
     >
         {orientation === Orientation.Across ? "ACROSS" : "DOWN"}
     </h2>
-    {#each [...$clues[orientation].values()] as clue, index}
+    {#each [...$clues[orientation].values()].sort((a, b) => a.number - b.number) as clue, index}
         <li class:bg-gray-100={index % 2 === 0}>
             <ClueInput
                 {clue}

@@ -5,16 +5,22 @@ export function renumber(crossword: Crossword): [crossword: Crossword, lostClues
     const grid = numberGrid(crossword.grid, crossword.size);
     const [clues, lostClues] = updateClues(grid, crossword.clues);
 
+    console.log({ clues, lostClues })
+
     return [{ ...crossword, grid, clues }, lostClues]
 }
 
 export function numberGrid(grid: Grid, size: number): Grid {
     let number = 0;
+    let across = 0;
+    const down: number[] = [];
 
     return grid.map((square, index) => {
         if (square.isBlack) return square;
 
-        const leftSquare = index % size !== 0 && grid[index - 1];
+        const xPos = index % size;
+
+        const leftSquare = xPos !== 0 && grid[index - 1];
         const upSquare = index >= size && grid[index - size];
 
         const newAcross = !leftSquare || leftSquare.isBlack;
@@ -24,13 +30,19 @@ export function numberGrid(grid: Grid, size: number): Grid {
             number++
         }
 
-        console.log(square.update(() => { return {} }) instanceof Square);
+        if (newAcross) {
+            across = number;
+        }
+
+        if (newDown) {
+            down[xPos] = number;
+        }
 
         return square.update(() => {
             return {
                 index,
-                across: newAcross ? number : leftSquare[Orientation.Down],
-                down: newDown ? number : upSquare[Orientation.Across],
+                [Orientation.Across]: across,
+                [Orientation.Down]: down[xPos],
                 number: newAcross || newDown ? number : null
             }
         });
@@ -44,15 +56,16 @@ export function buildClues(grid: Grid): ClueMap {
                 return map;
             }
             const number = square[orientation];
-            if (map.has(number)) {
-                console.log(map.get(number) instanceof Square);
-                map.get(number)!.update((clue) => {
+            const clue = map.get(number);
+
+            if (clue) {
+                map.set(number, clue.update((c) => {
                     return {
-                        indices: [...clue.indices, index]
+                        indices: c.indices.concat(index)
                     }
-                });
+                }));
             } else {
-                map.set(number, new Clue({ number }))
+                map.set(number, new Clue({ number, orientation, indices: [index] }))
                 return map;
             }
             return map;
@@ -65,12 +78,15 @@ export function buildClues(grid: Grid): ClueMap {
 }
 
 export function updateClues(grid: Grid, oldClues: ClueMap): [result: ClueMap, lostClues: ClueMap] {
-    const emptyClues = buildClues(grid);
-    const concat = (clues: ClueMap): Iter<[number, Clue]> => new Iter(clues[Orientation.Across].entries())
-        .concat(new Iter(clues[Orientation.Down].entries()));
+    const concatClues = (clues: ClueMap): Iter<Clue> => new Iter(clues[Orientation.Across].values())
+        .concat(new Iter(clues[Orientation.Down].values()));
 
-    const squareMap = new Map(concat(emptyClues).map(([_, v]) => [v.key(), v]));
-    const [lost, retained] = concat(oldClues).partition(([_, v]) => squareMap.has(v.key()));
+    const clueMap = (): ClueMap => {
+        return {
+            [Orientation.Across]: new Map(),
+            [Orientation.Down]: new Map()
+        }
+    };
 
     const updateAssociations = (clue: Clue) => {
         if (clue.associations.size) {
@@ -84,24 +100,30 @@ export function updateClues(grid: Grid, oldClues: ClueMap): [result: ClueMap, lo
         return clue;
     }
 
-    function partition(clues: Iter<[number, Clue]>, updateAssoc: boolean): [across: Iter<[number, Clue]>, down: Iter<[number, Clue]>] {
-        return clues
-            .map((pair) => (updateAssoc ? [pair[0], updateAssociations(pair[1])] : pair) as [number, Clue])
-            .partition(([_, v]) => !v[Orientation.Across]());
+    const emptyClues = buildClues(grid);
+    const squareMap = new Map(concatClues(emptyClues).map((clue) => [clue.key(), clue]));
+    const result = clueMap();
+    const lost = clueMap();
+
+    for (const clue of concatClues(oldClues)) {
+        const key = clue.key();
+        const match = squareMap.get(key);
+
+        if (match) {
+            result[clue.orientation].set(clue.number, updateAssociations(match.update(() => { return { ...clue, number: match.number } })));
+            squareMap.delete(key);
+        } else {
+            lost[clue.orientation].set(clue.number, clue);
+        }
     }
 
-    const result = partition(retained, true);
-    const lostClues = partition(lost, false);
+    for (const clue of squareMap.values()) {
+        result[clue.orientation].set(clue.number, clue);
+    }
 
     return [
-        {
-            [Orientation.Across]: new Map(result[Orientation.Across]),
-            [Orientation.Down]: new Map(result[Orientation.Down])
-        } as Readonly<ClueMap>,
-        {
-            [Orientation.Across]: new Map(lostClues[Orientation.Across]),
-            [Orientation.Down]: new Map(lostClues[Orientation.Down])
-        }
+        result,
+        lost
     ]
 }
 

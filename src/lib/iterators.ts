@@ -83,17 +83,26 @@ export function reduce<T, R>(
 }
 
 export function partition<T>(iterator: IterableIterator<T>, predicate: (value: T, index: number) => boolean): [IterableIterator<T>, IterableIterator<T>] {
+    const truthy: T[] = [];
+    const falsy: T[] = [];
     let index = 0;
-    function* filtered(predicateValue: boolean): IterableIterator<T> {
-        for (const item of iterator) {
-            if (predicate(item, index) === predicateValue) {
-                yield item;
-            }
-            index++
+
+    for (const item of iterator) {
+        if (predicate(item, index)) {
+            truthy.push(item);
+        } else {
+            falsy.push(item);
+        }
+        index++;
+    }
+
+    function* generate(items: T[]): IterableIterator<T> {
+        for (const item of items) {
+            yield item;
         }
     }
 
-    return [filtered(false), filtered(true)];
+    return [generate(falsy), generate(truthy)];
 }
 
 export function* iterateBySqrt<T>(iterable: IterableIterator<T>): IterableIterator<T> {

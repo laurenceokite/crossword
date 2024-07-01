@@ -7,12 +7,14 @@ const history: EditorHistory = {
     redo: []
 };
 
-const INIT_SIZE = 21;
+const INIT_SIZE = 15;
 
 const sizeStore = writable(INIT_SIZE);
 const emptyGrid = newGrid(INIT_SIZE);
 const grid = numberGrid(emptyGrid, INIT_SIZE);
 const clues = buildClues(grid);
+
+console.log(clues);
 
 let crossword: Readonly<Crossword> = { grid, clues, size: INIT_SIZE };
 const gridStore = writable(grid);

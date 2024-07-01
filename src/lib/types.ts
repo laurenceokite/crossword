@@ -64,10 +64,10 @@ export class Clue {
     };
 
     update(fn: (c: Clue) => Partial<Clue>): Clue {
-        return {
+        return new Clue({
             ...this,
             ...fn(this)
-        } as Readonly<Clue>;
+        });
     }
 
     key() {
