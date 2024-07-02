@@ -13,16 +13,7 @@
     export let squares: Square[];
     export const focusText = () => textAreaElement?.focus();
     export const focusSquares = () => {
-        const pos = squares.findIndex((s) => s.index === $cursor.index);
-        if (pos !== undefined) {
-            squareFoci[pos]();
-        } else {
-            cursor.setIndex(
-                editable.crossword(),
-                squares[0].index ?? $cursor.index,
-            );
-            squareFoci[0]();
-        }
+        squareInputMode = true;
     };
 
     const dispatch = createClueInputDispatcher<{
@@ -40,7 +31,6 @@
         goToNextEmpty = true;
     }
 
-    const squareFoci: { [key: number]: () => void } = {};
     let textAreaElement: HTMLTextAreaElement;
     let focused = false;
 
@@ -165,10 +155,10 @@
                 <div class="w-8">
                     <InputGridSquare
                         {square}
-                        highlighted={false}
                         focusable={focusable && squareInputMode}
                         disabled={false}
-                        selected={square.index === $cursor.index}
+                        selected={$cursor.index === square.index}
+                        highlighted={false}
                         ariaRowindex={undefined}
                         ariaColindex={index}
                         displayNumber={false}
@@ -176,7 +166,6 @@
                         on:selectSquare={handleSelectSquare}
                         on:clearValue={handleClearValue}
                         on:keydown={handleKeydown}
-                        bind:focus={squareFoci[square.index]}
                     />
                 </div>
             {/each}

@@ -18,6 +18,7 @@
 
     let gridMode = true;
     let autoSymmetry = true;
+    let sizeInputValue = $size;
     let focusGridDesigner: () => void;
 
     enum Section {
@@ -46,19 +47,19 @@
         editable.execute(updateClueText(...event.detail));
     }
 
-    function resize(newSize: number) {
-        if (!newSize || newSize === $size) return;
+    function resize() {
+        if (!sizeInputValue || sizeInputValue === $size) return;
 
-        if (newSize > MAX_GRID_SIZE) {
-            newSize = MAX_GRID_SIZE;
+        if (sizeInputValue > MAX_GRID_SIZE) {
+            sizeInputValue = MAX_GRID_SIZE;
         }
 
-        if (newSize < MIN_GRID_SIZE) {
-            newSize = MIN_GRID_SIZE;
+        if (sizeInputValue < MIN_GRID_SIZE) {
+            sizeInputValue = MIN_GRID_SIZE;
         }
 
-        if (newSize !== $size) {
-            editable.execute(resizeGrid(newSize));
+        if (sizeInputValue !== $size) {
+            editable.execute(resizeGrid(sizeInputValue));
         }
     }
 
@@ -140,9 +141,9 @@
             type="number"
             min={MIN_GRID_SIZE}
             max={MAX_GRID_SIZE}
-            bind:value={$size}
-            on:blur={() => resize($size)}
-            on:click={() => resize($size)}
+            bind:value={sizeInputValue}
+            on:blur={() => resize()}
+            on:click={() => resize()}
         />
     </section>
 

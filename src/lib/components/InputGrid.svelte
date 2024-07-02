@@ -21,21 +21,6 @@
     let selectedSquare: Square | null = null;
     $: selectedSquare = $grid[$cursor.index] ?? null;
 
-    const foci: (() => void)[] = [];
-    $: length = $grid.length;
-    $: if (foci.length > length) {
-        foci.length = length;
-    }
-    $: focus($cursor.index);
-
-    function focus(index: number) {
-        if (disabled || !focused) {
-            return;
-        }
-
-        foci[index]();
-    }
-
     function move(direction: Direction) {
         if ($cursor.number === $cursor.previousNumber) {
             goToNextEmpty = false;
@@ -84,7 +69,9 @@
             const { number } = $cursor;
             cursor.goToNextEmptySquare(
                 editable.crossword(),
-                number !== null ? ($clues[$cursor.orientation].get(number)?.indices.values()) ?? undefined : undefined,
+                number !== null
+                    ? new Set($clues[$cursor.orientation].get(number)?.indices)
+                    : undefined,
             );
         } else {
             cursor.move(
@@ -97,16 +84,6 @@
 
     function handleSelectSquare(event: CustomEvent<number>) {
         cursor.setIndex(editable.crossword(), event.detail);
-    }
-
-    function isHighlighted(square: Square) {
-        if (selectedSquare?.isBlack) {
-            return false;
-        }
-        return (
-            selectedSquare?.[$cursor.orientation] ===
-            square[$cursor.orientation]
-        );
     }
 
     const dispatch = createEventDispatcher<{
@@ -122,20 +99,19 @@
     tabindex="0"
     on:keydown={handleKeydown}
 >
-    {#each $grid as square, index}
-            <InputGridSquare
-                on:selectSquare={handleSelectSquare}
-                on:updateValue={handleUpdateValue}
-                on:clearValue={handleClearValue}
-                square={square.isBlack ? null : square}
-                selected={index === $cursor.index}
-                highlighted={!square.isBlack && isHighlighted(square)}
-                focusable={focused && !disabled}
-                {disabled}
-                ariaColindex={getXIndex($size, index)}
-                ariaRowindex={getYIndex($size, index)}
-                bind:focus={foci[index]}
-            />
+    {#each $grid as square, index (square)}
+        <InputGridSquare
+            on:selectSquare={handleSelectSquare}
+            on:updateValue={handleUpdateValue}
+            on:clearValue={handleClearValue}
+            square={square.isBlack ? null : square}
+            focusable={focused && !disabled}
+            selected={$cursor.index === index}
+            highlighted={$cursor.number === square[$cursor.orientation]}
+            {disabled}
+            ariaColindex={getXIndex($size, index)}
+            ariaRowindex={getYIndex($size, index)}
+        />
     {/each}
     <slot />
 </div>

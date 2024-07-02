@@ -3,18 +3,20 @@
     import type { Square } from "../types";
 
     export let square: Square | null;
+    export let selected: boolean;
+    export let highlighted: boolean;
     export let ariaColindex: number | undefined;
     export let ariaRowindex: number | undefined;
-    export let highlighted: boolean;
     export let focusable: boolean;
     export let disabled: boolean;
-    export let selected: boolean;
     export let displayNumber = true;
 
-    export const focus: () => void = () => {
-        inputElement?.focus();
-    };
     let inputElement: HTMLInputElement;
+
+    $: if (focusable && selected) {
+        console.log(square);
+        inputElement.focus();
+    }
 
     const dispatch = createEventDispatcher<{
         selectSquare: number;
@@ -54,18 +56,18 @@
     }
 </script>
 
-<div
-    class:bg-blue-100={highlighted && !disabled}
-    class:bg-blue-200={selected && !focusable}
-    class:bg-yellow-100={selected && focusable}
-    class:bg-gray-950={square === null}
-    class:bg-gray-600={selected && disabled && square === null}
-    class="relative border border-1 border-gray-500 aspect-square"
-    role="gridcell"
-    aria-colindex={ariaColindex}
-    aria-rowindex={ariaRowindex}
->
-    {#key focusable}
+{#key [highlighted, selected]}
+    <div
+        class:bg-blue-100={highlighted && !disabled}
+        class:bg-blue-200={selected && !focusable}
+        class:bg-yellow-100={selected && focusable}
+        class:bg-gray-950={square === null}
+        class:bg-gray-600={selected && disabled && square === null}
+        class="relative border border-1 border-gray-500 aspect-square"
+        role="gridcell"
+        aria-colindex={ariaColindex}
+        aria-rowindex={ariaRowindex}
+    >
         {#if square !== null}
             {#if square.number && displayNumber}
                 <div class="absolute top-0 left-0 text-tiny pl-[2px]">
@@ -86,5 +88,5 @@
                 tabindex="-1"
             />
         {/if}
-    {/key}
-</div>
+    </div>
+{/key}
